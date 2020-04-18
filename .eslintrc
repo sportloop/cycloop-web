@@ -1,0 +1,15 @@
+{
+  "extends": "airbnb-typescript-prettier",
+  "env": {
+    "jest": true
+  },
+  "overrides": [
+    {
+      "files": ["src/**/*.{ts,tsx}"]
+    }
+  ],
+  "rules": {
+    // NextJS provides its own global reference to React
+    "react/react-in-jsx-scope": "off"
+  }
+}
