@@ -4,11 +4,13 @@ import { styled } from "linaria/react";
 import { NextComponentType } from "next";
 import { AppContext, AppInitialProps, AppProps } from "next/app";
 import { DefaultSeo } from "next-seo";
+import { Provider } from "react-redux";
 
 import "typeface-nunito";
 import "typeface-poppins";
 
 import useViewport from "../hooks/useViewport";
+import createStore from "../modules";
 
 const Container = styled.div<{ viewportHeight: number }>`
   --vh: ${({ viewportHeight }) =>
@@ -51,19 +53,21 @@ const App: NextComponentType<AppContext, AppInitialProps, AppProps> = ({
 }) => {
   const { height } = useViewport();
   return (
-    <Container viewportHeight={height}>
-      <DefaultSeo
-        title="Cycloop App"
-        description="do what it takes"
-        canonical="https://cycloop.app"
-        openGraph={{
-          url: "https://cycloop.app",
-          title: "Cycloop - do what it takes",
-          description: "online cycling activity tracking",
-        }}
-      />
-      <Component {...pageProps} />
-    </Container>
+    <Provider store={createStore()}>
+      <Container viewportHeight={height}>
+        <DefaultSeo
+          title="Cycloop App"
+          description="do what it takes"
+          canonical="https://cycloop.app"
+          openGraph={{
+            url: "https://cycloop.app",
+            title: "Cycloop - do what it takes",
+            description: "online cycling activity tracking",
+          }}
+        />
+        <Component {...pageProps} />
+      </Container>
+    </Provider>
   );
 };
 
