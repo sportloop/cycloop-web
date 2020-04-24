@@ -8254,10 +8254,10 @@ next-offline@5.0.1:
     fs-extra "~8.1.0"
     workbox-webpack-plugin "^5.0.0"
 
-next-optimized-images@2.5.8:
-  version "2.5.8"
-  resolved "https://registry.yarnpkg.com/next-optimized-images/-/next-optimized-images-2.5.8.tgz#d6539d46b64f34bcfeba119cd1f7f8565ecfc4ce"
-  integrity sha512-VYWdOuOpN5QamFS0Vfa6pKKzE4D9YRTzdS07r3aj4WQiRw5VU9UhN8ZK5MA345eIuolba6o4c13wTCP9tNn2AA==
+next-optimized-images@2.6.0:
+  version "2.6.0"
+  resolved "https://registry.yarnpkg.com/next-optimized-images/-/next-optimized-images-2.6.0.tgz#10ae5feca4148d3abe4a6781e304bcb1d5c3c557"
+  integrity sha512-z+dASQLXIJPrc1iBt+jm5bravXud3nZ3de3Y3HgUNpJNUdkweym91dvKVgmvpXkEaNzExArybuSVNhOB2vR5qA==
   dependencies:
     chalk "^2.4.2"
     figures "^3.0.0"
