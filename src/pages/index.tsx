@@ -1,38 +1,28 @@
-import * as React from "react";
-import { FC } from "react";
 import { styled } from "linaria/react";
+import { NextPage } from "next";
+import Link from "next/link";
 
-import Logo from "../components/Logo";
+import Header from "../components/Header";
+import Container from "../components/Container";
 
-const Container = styled.div`
-  height: calc(100 * var(--vh));
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
+const Clickable = styled.a`
+  color: #fff;
+  text-decoration: none;
 `;
 
-const Icon = styled.h1`
-  font-size: 4rem;
-  margin-bottom: 2rem;
+const Title = styled.h3`
+  font-weight: normal;
 `;
 
-const Description = styled.p`
-  font-size: 2rem;
-  text-align: center;
-`;
-
-const Index: FC = () => {
+const Index: NextPage = () => {
   return (
     <Container>
-      <Icon>
-        <Logo />
-      </Icon>
-      <Description>
-        <strong>cycloop</strong> is under construction. Check back later for
-        updates.
-      </Description>
+      <Header />
+      <Link href="/devices" passHref>
+        <Clickable>
+          <Title>Devices</Title>
+        </Clickable>
+      </Link>
     </Container>
   );
 };
