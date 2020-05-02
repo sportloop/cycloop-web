@@ -21,11 +21,23 @@ const Container = styled.div<{ viewportHeight: number }>`
       box-sizing: border-box;
       font-family: Nunito, sans-serif;
       color: #fff;
+      background: #000;
       font-size: 62.5%;
     }
 
+    @media screen and (max-width: 460px) {
+      html {
+        font-size: 56.25%;
+      }
+    }
+
+    @media screen and (max-width: 320px) {
+      html {
+        font-size: 50%;
+      }
+    }
+
     body {
-      background: #000;
       margin: 0;
     }
 
@@ -47,13 +59,15 @@ const Container = styled.div<{ viewportHeight: number }>`
   }
 `;
 
+const store = createStore();
+
 const App: NextComponentType<AppContext, AppInitialProps, AppProps> = ({
   Component,
   pageProps,
 }) => {
   const { height } = useViewport();
   return (
-    <Provider store={createStore()}>
+    <Provider store={store}>
       <Container viewportHeight={height}>
         <DefaultSeo
           title="Cycloop App"

@@ -1,17 +1,39 @@
-import { createSlice } from "@reduxjs/toolkit";
+/* eslint-disable no-bitwise */
+import { createSlice, PayloadAction, createSelector } from "@reduxjs/toolkit";
+import { call, put } from "redux-saga/effects";
 
-export type DeviceState = {};
+export type DevicesState = {
+  bleAvailable: boolean;
+};
 
-const initialState: DeviceState = {};
+const initialState: DevicesState = {
+  bleAvailable: false,
+};
 
 const { reducer, actions } = createSlice({
   name: "devices",
   initialState,
-  reducers: {},
+  reducers: {
+    updateBLEAvailability: (state, { payload }: PayloadAction<boolean>) => {
+      state.bleAvailable = payload;
+    },
+  },
 });
 
+const isBLEAvailable = () => {
+  return typeof navigator !== "undefined" && "bluetooth" in navigator;
+};
+
 function* saga() {
-  // NOTE: device saga
+  const available = yield call(isBLEAvailable);
+  yield put(actions.updateBLEAvailability(available));
 }
 
-export { reducer, actions, saga };
+const stateSelector = <S extends { devices: DevicesState }>(state: S) =>
+  state.devices;
+
+const selectors = {
+  bleAvailable: createSelector(stateSelector, (state) => state.bleAvailable),
+};
+
+export { reducer, actions, saga, selectors };

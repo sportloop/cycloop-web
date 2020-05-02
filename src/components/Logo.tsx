@@ -13,8 +13,8 @@ const SvgComponent = ({
   return (
     <svg
       viewBox="0 0 315 175"
-      width="1em"
-      height="0.5555em"
+      width="1.8em"
+      height="1em"
       ref={svgRef}
       {...props}
     >
