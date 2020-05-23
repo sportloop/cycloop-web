@@ -1,23 +1,14 @@
-const withCSS = require("@zeit/next-css");
+const withCSS = require("./config/next-css");
 const withOffline = require("next-offline");
 const withPlugins = require("next-compose-plugins");
 const optimizedImages = require("next-optimized-images");
+const bundleAnalyzer = require("@next/bundle-analyzer");
 
 module.exports = withPlugins([
   [
     withCSS,
     {
       webpack(config, { isServer }) {
-        config.module.rules[0].use = [
-          config.module.rules[0].use,
-          {
-            loader: "linaria/loader",
-            options: {
-              sourceMap: process.env.NODE_ENV !== "production",
-            },
-          },
-        ];
-
         const testPattern = /\.(woff|woff2|eot|ttf|otf)$/;
 
         config.module.rules.push({
@@ -69,4 +60,5 @@ module.exports = withPlugins([
     },
   ],
   [optimizedImages, { optimizeImagesInDev: true }],
+  [bundleAnalyzer],
 ]);
