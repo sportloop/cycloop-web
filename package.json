@@ -26,7 +26,7 @@
     "@commitlint/cli": "9.0.1",
     "@commitlint/config-conventional": "9.0.1",
     "@testing-library/react": "10.4.4",
-    "@types/jest": "26.0.3",
+    "@types/jest": "26.0.4",
     "@types/node": "12.12.2",
     "@types/react": "16.9.41",
     "@zeit/next-css": "1.0.1",
