@@ -46,7 +46,7 @@
     "prettier": "2.0.5",
     "responsive-loader": "2.0.0",
     "sharp": "0.25.4",
-    "ts-jest": "26.1.4",
+    "ts-jest": "26.2.0",
     "typescript": "3.9.7",
     "url-loader": "4.1.0",
     "webp-loader": "0.6.0"
