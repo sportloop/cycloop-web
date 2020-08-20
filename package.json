@@ -47,7 +47,7 @@
     "responsive-loader": "2.0.0",
     "sharp": "0.25.4",
     "ts-jest": "26.2.0",
-    "typescript": "3.9.7",
+    "typescript": "4.0.2",
     "url-loader": "4.1.0",
     "webp-loader": "0.6.0"
   },
