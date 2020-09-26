@@ -6,7 +6,7 @@ import Link from "next/link";
 import Logo from "../components/Logo";
 
 const Container = styled.div`
-  height: calc(100 * var(--vh));
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;

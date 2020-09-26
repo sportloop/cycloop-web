@@ -3,12 +3,7 @@ import * as React from "react";
 import { FC } from "react";
 import { styled } from "linaria/react";
 
-import {
-  Interval,
-  Board,
-  isSection,
-  getIntervalColor,
-} from "../modules/workoutEditor";
+import { Interval, Board, getIntervalColor } from "../modules/workoutEditor";
 
 const Container = styled.div`
   width: 100%;
@@ -28,9 +23,9 @@ const Scroller = styled.div`
 export type SectionVisualizerProps = {
   intervals: Interval[];
   minWidth?: number;
-  selected?: boolean;
+  selected?: string;
   height?: number;
-  onClick?: () => void;
+  onSelect?: (id: string) => void;
 };
 
 const intervalToPathFunction = (
@@ -73,8 +68,9 @@ const IntervalVisualizer: FC<IntervalProps> = ({
 
 const SectionVisualizer = ({
   intervals,
-  selected = false,
+  selected = null,
   height,
+  onSelect,
 }: SectionVisualizerProps) => {
   const dimensions = intervals.reduce(
     (total, interval) => ({
@@ -91,7 +87,8 @@ const SectionVisualizer = ({
           key={interval.id}
           interval={interval}
           height={height || dimensions.height}
-          selected={selected}
+          selected={selected === interval.id}
+          onClick={() => onSelect?.(interval.id)}
         />
       ))}
     </>

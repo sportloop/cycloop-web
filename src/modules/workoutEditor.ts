@@ -44,6 +44,8 @@ export type WorkoutEditorState = {
   intervalId: ID;
   sections: Section[];
   board: Board;
+  editSection: boolean;
+  sectionsOpen: boolean;
 };
 
 export type WorkoutStats = {
@@ -55,14 +57,87 @@ export type WorkoutStats = {
   workingTime: number;
 };
 
-export const isSection = (
-  candidate: Interval | Section
-): candidate is Section => {
-  return "intervals" in candidate;
-};
+const initalSections: Section[] = [
+  {
+    id: nanoid(),
+    name: "Sprint Warmup",
+    intervals: [
+      { name: "Warmup Ramp", id: nanoid(), from: 0.35, to: 0.55, duration: 2 },
+      {
+        name: "Warmup Recovery 1",
+        id: nanoid(),
+        from: 0.55,
+        to: 0.55,
+        duration: 3,
+      },
+      {
+        name: "Warmup Sprint 1",
+        id: nanoid(),
+        from: 1.3,
+        to: 1.3,
+        duration: 0.25,
+      },
+      {
+        name: "Warmup Recovery 2",
+        id: nanoid(),
+        from: 0.55,
+        to: 0.55,
+        duration: 0.75,
+      },
+      {
+        name: "Warmup Sprint 2",
+        id: nanoid(),
+        from: 1.5,
+        to: 1.5,
+        duration: 0.25,
+      },
+      {
+        name: "Warmup Recovery 3",
+        id: nanoid(),
+        from: 0.55,
+        to: 0.55,
+        duration: 0.75,
+      },
+      {
+        name: "Warmup Sprint 3",
+        id: nanoid(),
+        from: 1.7,
+        to: 1.7,
+        duration: 0.25,
+      },
+      {
+        name: "Warmup Recovery 4",
+        id: nanoid(),
+        from: 0.55,
+        to: 0.55,
+        duration: 0.75,
+      },
+    ],
+    modifier: 1,
+  },
+  {
+    id: nanoid(),
+    name: "Over-under",
+    intervals: [
+      { name: "Under", id: nanoid(), from: 0.8, to: 0.8, duration: 1 },
+      { name: "Over", id: nanoid(), from: 1.1, to: 1.1, duration: 1 },
+    ],
+    modifier: 1,
+  },
+  {
+    id: nanoid(),
+    name: "Over-under with Recovery",
+    intervals: [
+      { name: "Under", id: nanoid(), from: 0.9, to: 0.9, duration: 1 },
+      { name: "Over", id: nanoid(), from: 1.15, to: 1.15, duration: 1 },
+      { name: "Recovery", id: nanoid(), from: 0.4, to: 0.4, duration: 0.5 },
+    ],
+    modifier: 1,
+  },
+];
 
 const initialState: WorkoutEditorState = {
-  sections: [],
+  sections: initalSections,
   sectionId: null,
   intervalId: null,
   workout: {
@@ -70,6 +145,8 @@ const initialState: WorkoutEditorState = {
     intervals: [],
   },
   board: [],
+  editSection: false,
+  sectionsOpen: false,
 };
 
 const stateSelector = <S extends { workoutEditor: WorkoutEditorState }>(
@@ -78,11 +155,13 @@ const stateSelector = <S extends { workoutEditor: WorkoutEditorState }>(
 
 const workoutSelector = (state: WorkoutEditorState) => state.workout;
 
+const sectionsSelector = (state: WorkoutEditorState) => state.sections;
+
 const createSectionSelector = (id: ID) => (state: WorkoutEditorState) => {
   if (!id) {
     return null;
   }
-  return state.sections.find((section) => section.id === id);
+  return sectionsSelector(state).find((section) => section.id === id);
 };
 
 const sectionSelector = (state: WorkoutEditorState) => {
@@ -153,12 +232,23 @@ const statsSelector = (state: WorkoutEditorState) => {
   return stats;
 };
 
+const editSectionSelector = (state: WorkoutEditorState) => {
+  return state.editSection;
+};
+
+const sectionsOpenSelector = (state: WorkoutEditorState) => {
+  return state.sectionsOpen;
+};
+
 const selectors = createSelectors(stateSelector, {
   workout: workoutSelector,
   section: sectionSelector,
+  sections: sectionsSelector,
   interval: intervalSelector,
   board: boardSelector,
   stats: statsSelector,
+  sectionEditorOpen: editSectionSelector,
+  sectionsOpen: sectionsOpenSelector,
 });
 
 const createInterval = (): Interval => {
@@ -167,6 +257,19 @@ const createInterval = (): Interval => {
 
 const createSection = (): Section => {
   return { id: nanoid(), name: "", intervals: [], modifier: 1 };
+};
+
+const cloneIntervals = (intervals: Interval[]) => {
+  return intervals.map((interval) => ({ ...interval, id: nanoid() }));
+};
+
+const cloneSection = (section: Section): Section => {
+  return {
+    ...section,
+    id: nanoid(),
+    name: section.name ? `${section.name} Copy` : undefined,
+    intervals: cloneIntervals(section.intervals),
+  };
 };
 
 const { reducer, actions } = createSlice({
@@ -244,7 +347,15 @@ const { reducer, actions } = createSlice({
       if (!section) {
         return;
       }
-      state.board.push(...section.intervals);
+      state.board.push(...cloneIntervals(section.intervals));
+    },
+    duplicateSection: (state, action: PayloadAction<ID>) => {
+      const section = createSectionSelector(action.payload)(state);
+      if (section) {
+        const clone = cloneSection(section);
+        state.sectionId = clone.id;
+        state.sections.push(clone);
+      }
     },
     updateSectionName: (state, action: PayloadAction<string>) => {
       const section = sectionSelector(state);
@@ -255,6 +366,20 @@ const { reducer, actions } = createSlice({
     },
     cancelSection: (state) => {
       state.sectionId = null;
+    },
+    editSection: (state) => {
+      if (sectionSelector(state)) {
+        state.editSection = true;
+      }
+    },
+    cancelEdit: (state) => {
+      state.editSection = false;
+    },
+    openSections: (state) => {
+      state.sectionsOpen = true;
+    },
+    closeSections: (state) => {
+      state.sectionsOpen = false;
     },
   },
 });

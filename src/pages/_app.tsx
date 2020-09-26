@@ -1,5 +1,6 @@
 /* eslint-disable react/jsx-props-no-spreading */
 import * as React from "react";
+import { FC } from "react";
 import { styled } from "linaria/react";
 import { NextComponentType } from "next";
 import { AppContext, AppInitialProps, AppProps } from "next/app";
@@ -9,12 +10,10 @@ import { Provider } from "react-redux";
 import "typeface-nunito";
 import "typeface-poppins";
 
-import useViewport from "../hooks/useViewport";
 import createStore from "../modules";
 
-const Container = styled.div<{ viewportHeight: number }>`
-  --vh: ${({ viewportHeight }) =>
-    viewportHeight ? `${viewportHeight / 100}px` : "1vh"};
+const Container = styled.div`
+  height: 100%;
 
   :global() {
     html {
@@ -22,11 +21,23 @@ const Container = styled.div<{ viewportHeight: number }>`
       font-family: Nunito, sans-serif;
       color: #fff;
       font-size: 62.5%;
+      touch-action: manipulation;
     }
 
     body {
       background: #000;
       margin: 0;
+      height: 100vh;
+    }
+
+    @supports (-webkit-touch-callout: none) {
+      body {
+        height: -webkit-fill-available;
+      }
+    }
+
+    #__next {
+      height: 100%;
     }
 
     *,
@@ -51,23 +62,37 @@ const App: NextComponentType<AppContext, AppInitialProps, AppProps> = ({
   Component,
   pageProps,
 }) => {
-  const { height } = useViewport();
   return (
     <Provider store={createStore()}>
-      <Container viewportHeight={height}>
-        <DefaultSeo
-          title="Cycloop App"
-          description="do what it takes"
-          canonical="https://cycloop.app"
-          openGraph={{
-            url: "https://cycloop.app",
-            title: "Cycloop - do what it takes",
-            description: "online cycling activity tracking",
-          }}
-        />
+      <Viewport>
         <Component {...pageProps} />
-      </Container>
+      </Viewport>
     </Provider>
+  );
+};
+
+const Viewport: FC = ({ children }) => {
+  return (
+    <Container>
+      <DefaultSeo
+        title="Cycloop App"
+        description="do what it takes"
+        canonical="https://cycloop.app"
+        openGraph={{
+          url: "https://cycloop.app",
+          title: "Cycloop - do what it takes",
+          description: "online cycling activity tracking",
+        }}
+        additionalMetaTags={[
+          {
+            property: "viewport",
+            content:
+              "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0",
+          },
+        ]}
+      />
+      {children}
+    </Container>
   );
 };
 

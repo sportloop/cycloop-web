@@ -3,8 +3,8 @@ import { styled } from "linaria/react";
 import * as CSS from "csstype";
 
 type BoxProps = {
-  width?: number;
-  height?: number;
+  width?: number | string;
+  height?: number | string;
   direction?: CSS.FlexDirectionProperty;
   align?: CSS.AlignItemsProperty;
   justify?: CSS.JustifyContentProperty;
@@ -19,8 +19,8 @@ const Box = styled.div`
   flex-direction: ${({ direction = "column" }: BoxProps) => direction};
   align-items: ${({ align = "flex-start" }: BoxProps) => align};
   justify-content: ${({ justify = "flex-start" }: BoxProps) => justify};
-  width: ${({ width }: BoxProps) => (width ? `${width}rem` : "100%")};
-  height: ${({ height }: BoxProps) => (height ? `${height}rem` : "auto")};
+  width: ${({ width }: BoxProps) => (width ? applyUnits(width) : "100%")};
+  height: ${({ height }: BoxProps) => (height ? applyUnits(height) : "auto")};
   padding: ${({ padding }: BoxProps) => (padding ? applyUnits(padding) : 0)};
 `;
 

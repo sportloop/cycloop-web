@@ -6,19 +6,24 @@ const useViewport = () => {
   const setDimensions = useCallback(() => {
     apply({ width: window.innerWidth, height: window.innerHeight });
   }, []);
+  const restoreScroll = useCallback(() => {
+    window.scrollTo({ top: 0 });
+  }, []);
   // eslint-disable-next-line consistent-return
   useEffect(() => {
     if (typeof window !== "undefined") {
       setDimensions();
       window.addEventListener("scroll", setDimensions, { passive: true });
       window.addEventListener("resize", setDimensions, { passive: true });
+      document.addEventListener("focus", restoreScroll);
 
       return () => {
         window.removeEventListener("scroll", setDimensions);
         window.removeEventListener("resize", setDimensions);
+        document.removeEventListener("focus", restoreScroll);
       };
     }
-  }, [setDimensions]);
+  }, [setDimensions, restoreScroll]);
 
   return dimensions;
 };
