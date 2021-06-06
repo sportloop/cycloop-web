@@ -12,7 +12,7 @@
   "dependencies": {
     "@reduxjs/toolkit": "1.5.0",
     "linaria": "1.4.1",
-    "next": "9.5.5",
+    "next": "10.2.3",
     "next-seo": "4.17.0",
     "react": "17.0.1",
     "react-dom": "17.0.1",
