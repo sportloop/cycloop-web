@@ -10,7 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@reduxjs/toolkit": "1.5.0",
+    "@reduxjs/toolkit": "1.8.2",
     "linaria": "1.4.1",
     "next": "9.5.5",
     "next-seo": "4.17.0",
