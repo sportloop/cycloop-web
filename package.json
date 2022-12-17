@@ -20,7 +20,7 @@
     "redux": "4.2.0",
     "redux-saga": "1.2.1",
     "typeface-nunito": "1.1.13",
-    "typeface-poppins": "0.0.72"
+    "typeface-poppins": "1.1.13"
   },
   "devDependencies": {
     "@commitlint/cli": "17.1.2",
