@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "1.8.6",
-    "linaria": "1.4.1",
+    "linaria": "4.5.4",
     "next": "9.5.5",
     "next-seo": "4.29.0",
     "react": "17.0.2",
