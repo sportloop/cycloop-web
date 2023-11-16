@@ -45,7 +45,7 @@
     "next-optimized-images": "2.6.2",
     "prettier": "2.7.1",
     "responsive-loader": "2.0.0",
-    "sharp": "0.31.2",
+    "sharp": "0.32.6",
     "ts-jest": "29.0.3",
     "typescript": "4.8.4",
     "url-loader": "4.1.1",
