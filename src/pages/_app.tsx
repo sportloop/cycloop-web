@@ -1,60 +1,34 @@
 /* eslint-disable react/jsx-props-no-spreading */
 import * as React from "react";
-import { styled } from "linaria/react";
-import { NextComponentType } from "next";
-import { AppContext, AppInitialProps, AppProps } from "next/app";
 import { DefaultSeo } from "next-seo";
-import { Provider } from "react-redux";
+import { createDynamicStore } from "remodules";
+import { createWrapper, HYDRATE } from "next-redux-wrapper";
 
-import "typeface-nunito";
-import "typeface-poppins";
+import "tailwindcss/tailwind.css";
+import "@reach/dialog/styles.css";
+import "@reach/menu-button/styles.css";
+import { ViewportProvider } from "../hooks/useViewport";
 
-import useViewport from "../hooks/useViewport";
-import createStore from "../modules";
+import "../global.css";
 
-const Container = styled.div<{ viewportHeight: number }>`
-  --vh: ${({ viewportHeight }) =>
-    viewportHeight ? `${viewportHeight / 100}px` : "1vh"};
+const createStore = () => {
+  const store = createDynamicStore({
+    reducer: (state = {}, action = { type: "" }) => {
+      if (action.type === HYDRATE) {
+        return { ...state, ...action.payload };
+      }
+      return state;
+    },
+  });
+  return store;
+};
 
-  :global() {
-    html {
-      box-sizing: border-box;
-      font-family: Nunito, sans-serif;
-      color: #fff;
-      font-size: 62.5%;
-    }
-
-    body {
-      background: #000;
-      margin: 0;
-    }
-
-    *,
-    *:before,
-    *:after {
-      box-sizing: inherit;
-    }
-
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6,
-    p {
-      margin: 0;
-    }
-  }
-`;
-
-const App: NextComponentType<AppContext, AppInitialProps, AppProps> = ({
-  Component,
-  pageProps,
-}) => {
-  const { height } = useViewport();
+function App({ Component, pageProps }) {
+  const Layout = Component.Layout || React.Fragment;
+  const layoutProps = Component.layoutProps || {};
   return (
-    <Provider store={createStore()}>
-      <Container viewportHeight={height}>
+    <ViewportProvider>
+      <main className="min-h-screen bg-black selection:text-black selection:bg-white">
         <DefaultSeo
           title="Cycloop App"
           description="do what it takes"
@@ -65,10 +39,22 @@ const App: NextComponentType<AppContext, AppInitialProps, AppProps> = ({
             description: "online cycling activity tracking",
           }}
         />
-        <Component {...pageProps} />
-      </Container>
-    </Provider>
+        <Layout {...layoutProps}>
+          <Component {...pageProps} />
+        </Layout>
+      </main>
+      <svg width="0" height="0" viewBox="0 0 400 300">
+        <defs>
+          <mask id="logo_mask">
+            <path
+              fill="white"
+              d="M227.5 0A87.5 87.5 0 00140 87.5a52.5 52.5 0 11-8.4-28.4 99.8 99.8 0 0117.5-33.7A87.5 87.5 0 10175 87.5a52.5 52.5 0 115.7 23.8 99.8 99.8 0 01-17 36A87.5 87.5 0 10227.5 0z"
+            />
+          </mask>
+        </defs>
+      </svg>
+    </ViewportProvider>
   );
-};
+}
 
-export default App;
+export default createWrapper(createStore, { debug: true }).withRedux(App);

@@ -1,0 +1,156 @@
+/* stolen from https://codepen.io/jh3y/pen/WNmQXyE */
+
+:root {
+  --backdrop: hsl(0 0% 60% / 0.12);
+  --radius: 14;
+  --border-top: 3;
+  --border-right: 3;
+  --border-bottom: 3;
+  --border-left: 3;
+  --border: 3;
+  --backup-border: var(--backdrop);
+  --size: 200;
+  --base: 20;
+  --spread: 500;
+}
+
+* {
+  min-width: 0;
+}
+
+/* Glow specific styles */
+[data-glow] {
+  --border-top-size: calc(var(--border-top, var(--border, 2)) * 1px);
+  --border-right-size: calc(var(--border-right, var(--border, 2)) * 1px);
+  --border-bottom-size: calc(var(--border-bottom, var(--border, 2)) * 1px);
+  --border-left-size: calc(var(--border-left, var(--border, 2)) * 1px);
+  --border-size: calc(var(--border, 2) * 1px);
+  --spotlight-size: calc(var(--size, 150) * 1px);
+  --hue: calc(var(--base) + (var(--xp, 0) * var(--spread, 0)));
+  background-image: radial-gradient(
+    var(--spotlight-size) var(--spotlight-size) at calc(var(--x, 0) * 1px)
+      calc(var(--y, 0) * 1px),
+    hsl(
+      var(--hue, 210) calc(var(--saturation, 100) * 1%)
+        calc(var(--lightness, 70) * 1%) / var(--bg-spot-opacity, 0.1)
+    ),
+    transparent
+  );
+  background-color: var(--backdrop, transparent);
+  background-size: calc(
+      100% + var(--border-right-size) + var(--border-left-size)
+    )
+    calc(100% + var(--border-top-size) + var(--border-bottom-size));
+  background-position: 50% 50%;
+  background-attachment: fixed;
+  border: var(--border-size) solid var(--backup-border);
+  border-top-width: var(--border-top-size);
+  border-right-width: var(--border-right-size);
+  border-bottom-width: var(--border-bottom-size);
+  border-left-width: var(--border-left-size);
+  position: relative;
+  touch-action: none;
+}
+
+[data-glow]::before,
+[data-glow]::after {
+  pointer-events: none;
+  content: "";
+  position: absolute;
+  inset: calc(var(--border-size) * -1);
+  border: var(--border-size) solid transparent;
+  border-radius: calc(var(--radius) * 1px);
+  background-attachment: fixed;
+  background-size: calc(100% + (2 * var(--border-size)))
+    calc(100% + (2 * var(--border-size)));
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  mask: linear-gradient(transparent, transparent), linear-gradient(white, white);
+  mask-clip: padding-box, border-box;
+  mask-composite: intersect;
+}
+
+/* This is the emphasis light */
+[data-glow]::before {
+  background-image: radial-gradient(
+    calc(var(--spotlight-size) * 0.75) calc(var(--spotlight-size) * 0.75) at
+      calc(var(--x, 0) * 1px) calc(var(--y, 0) * 1px),
+    hsl(
+      var(--hue, 210) calc(var(--saturation, 100) * 1%)
+        calc(var(--lightness, 50) * 1%) / var(--border-spot-opacity, 1)
+    ),
+    transparent 100%
+  );
+  filter: brightness(2);
+}
+/* This is the spotlight */
+[data-glow]::after {
+  background-image: radial-gradient(
+    calc(var(--spotlight-size) * 0.5) calc(var(--spotlight-size) * 0.5) at
+      calc(var(--x, 0) * 1px) calc(var(--y, 0) * 1px),
+    hsl(0 100% 100% / var(--border-light-opacity, 1)),
+    transparent 100%
+  );
+}
+[data-glow] > [data-glow]:not(:is(a, button)) {
+  position: absolute;
+  inset: 0;
+  will-change: filter;
+  opacity: var(--outer, 1);
+}
+[data-glow] > [data-glow]:not(:is(a, button)) {
+  border-radius: calc(var(--radius) * 1px);
+  border-width: calc(var(--border-size) * 20);
+  filter: blur(calc(var(--border-size) * 10));
+  background: none;
+  pointer-events: none;
+}
+[data-glow] > [data-glow]:not(:is(a, button))::before {
+  inset: -10px;
+  border-width: 10px;
+}
+[data-glow] > [data-glow] {
+  border: none;
+}
+[data-glow] :is(a, button) {
+  border-radius: calc(var(--radius) * 1px);
+  border: var(--border-size) solid transparent;
+}
+[data-glow] :is(a, button) [data-glow] {
+  background: none;
+}
+[data-glow] :is(a, button) [data-glow]::before {
+  inset: calc(var(--border-size) * -1);
+  border-width: calc(var(--border-size) * 1);
+}
+
+article button {
+  padding: 0.75rem 2rem;
+  align-self: end;
+  color: hsl(0 0% 80%);
+}
+
+button[data-glow] span {
+  font-weight: bold;
+  background-image: radial-gradient(
+    var(--spotlight-size) var(--spotlight-size) at calc(var(--x, 0) * 1px)
+      calc(var(--y, 0) * 1px),
+    hsl(
+      var(--hue, 210) calc(var(--saturation, 100) * 1%)
+        calc(var(--lightness, 70) * 1%) / var(--bg-spot-opacity, 1)
+    ),
+    transparent
+  );
+  background-color: var(--backdrop, transparent);
+  background-position: 50% 50%;
+  background-attachment: fixed;
+  background-clip: text;
+  filter: brightness(1.5);
+}
+
+.translucent-logo {
+  object-fit: cover;
+  mask: url(#logo_mask);
+  mask-position: 0 0;
+  mask-size: 100px 100px;
+}

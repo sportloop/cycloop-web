@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TrainingCenterDatabase
+  xsi:schemaLocation="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2 http://www.garmin.com/xmlschemas/TrainingCenterDatabasev2.xsd"
+  xmlns:ns5="http://www.garmin.com/xmlschemas/ActivityGoals/v1"
+  xmlns:ns3="http://www.garmin.com/xmlschemas/ActivityExtension/v2"
+  xmlns:ns2="http://www.garmin.com/xmlschemas/UserProfile/v2"
+  xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ns4="http://www.garmin.com/xmlschemas/ProfileExtension/v1"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Activities>
+    <Activity Sport="Biking">
+      <Id>2020-06-01T18:38:10.39Z</Id>
+      <Lap StartTime="2020-06-01T18:38:10Z">
+        <TotalTimeSeconds>300</TotalTimeSeconds>
+        <DistanceMeters>2501.89</DistanceMeters>
+        <MaximumSpeed>9.7222222222222214</MaximumSpeed>
+        <Calories>40</Calories>
+        <AverageHeartRateBpm>
+          <Value>122</Value>
+        </AverageHeartRateBpm>
+        <MaximumHeartRateBpm>
+          <Value>132</Value>
+        </MaximumHeartRateBpm>
+        <Intensity>Active</Intensity>
+        <Cadence>76</Cadence>
+        <TriggerMethod>Time</TriggerMethod>
+        <Track>
+          <Trackpoint>
+            <Time>2020-06-01T18:38:10Z</Time>
+            <DistanceMeters>0</DistanceMeters>
+            <HeartRateBpm>
+              <Value>112</Value>
+            </HeartRateBpm>
+            <Cadence>84</Cadence>
+            <Extensions>
+              <ns3:TPX>
+                <ns3:Watts>53</ns3:Watts>
+                <ns3:Speed>7.63888888888889</ns3:Speed>
+              </ns3:TPX>
+            </Extensions>
+          </Trackpoint>
+          <Trackpoint>
+            <Time>2020-06-01T18:38:11Z</Time>
+            <DistanceMeters>8.22</DistanceMeters>
+            <HeartRateBpm>
+              <Value>113</Value>
+            </HeartRateBpm>
+            <Cadence>88</Cadence>
+            <Extensions>
+              <ns3:TPX>
+                <ns3:Watts>75</ns3:Watts>
+                <ns3:Speed>8.22222222222222</ns3:Speed>
+              </ns3:TPX>
+            </Extensions>
+          </Trackpoint>
+        </Track>
+      </Lap>
+      <Notes />
+      <Creator xsi:type="Application_t">
+        <Name>cycloop</Name>
+      </Creator>
+    </Activity>
+  </Activities>
+</TrainingCenterDatabase>

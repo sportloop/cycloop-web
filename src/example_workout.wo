@@ -1,0 +1,31 @@
+# Example Workout
+
+<!-- This workout is also valid markdown, which means you can view it on GitHub and it supports comments -->
+<!-- The first level 1 heading is treated as the title/name of the workout -->
+
+This is an example workout. It's a **good starting point** for creating your own workouts.
+
+<!-- The first list is treated as the interval description of the workout -->
+<!-- everything else is treated as the description, which can include anything markdown supports -->
+
+<!-- The format for intervals is: [time] ?[percentage of FTP]% ?[target rpm]rpm ?[target heart rate]bpm -->
+
+- 5:00 35%
+    <!-- text can be attached to the block -->
+  - :30 Let's get this workout started
+  <!-- each timestamp here is relative to the previous entry in the list -->
+  - 2:30 In 2 minutes we'll start the first interval
+  - :15 Today's workout is all about those sprints
+  - :15 We'll ramp up to each sprint...
+  - :15 But stay on the pedals, because we're not letting off the gas right away, instead, we'll ramp down and then back up again
+  <!-- To simplify creation of repeated structures, the number of repetitions can be used as a block -->
+- 5x
+  <!-- Inside a repeat block, everything behaves as before, but just nested 1 level deeper -->
+  - 5:00 50%..80% 90rpm
+  - :15 140%
+    <!-- Text needs to be indented 3 levels in repeat blocks -->
+    - :10 Almost there, keep pushing!
+  - 5:00 80%..50%
+- 15:00 80bpm
+
+<!-- time is formatted as hh:mm:ss, where hh: and mm are optional, so seconds can be shortened to :10 for 10 seconds or displayed as 0:10 -->
