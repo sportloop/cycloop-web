@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "@xstate/react";
 import type { SnapshotFrom } from "xstate";
 
-import UploadButton from "@/modules/strava/UploadButton";
 import SaveButton from "@/modules/workout/SaveButton";
 import Visualiser from "@/modules/workout/Visualiser";
 import { useAppActor } from "@/machines/context";
@@ -202,7 +201,7 @@ function Metric({
 
 // ─── Power Hero ────────────────────────────────────────────
 
-function PowerHero() {
+function PowerHero({ onChangeFtp }: { onChangeFtp?: () => void }) {
   const workoutActor = useWorkoutActor();
   const power = useSelector(workoutActor, selectCurrentPower);
   const target = useSelector(workoutActor, selectTargetPowerFromSnapshot);
@@ -296,6 +295,15 @@ function PowerHero() {
             />
           </div>
         </div>
+      )}
+
+      {onChangeFtp && (
+        <button
+          onClick={onChangeFtp}
+          className="mt-3 text-xs md:text-sm text-white/20 hover:text-white/40 transition-colors touch-manipulation"
+        >
+          FTP: {ftp}W
+        </button>
       )}
     </div>
   );
@@ -698,9 +706,82 @@ function DevicesDialog({
 }
 
 
+// ─── FTP localStorage ─────────────────────────────────────
+
+const FTP_KEY = "cycloop:ftp";
+
+function loadFtp(): number | null {
+  try {
+    const v = localStorage.getItem(FTP_KEY);
+    if (v == null) return null;
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveFtp(ftp: number) {
+  try {
+    localStorage.setItem(FTP_KEY, String(ftp));
+  } catch {
+    // localStorage unavailable
+  }
+}
+
+// ─── FTP Setup Screen ─────────────────────────────────────
+
+function FtpSetup({ onSave, initialFtp }: { onSave: (ftp: number) => void; initialFtp?: number }) {
+  const [value, setValue] = useState(String(initialFtp ?? 200));
+
+  const numValue = Number(value);
+  const isValid = Number.isFinite(numValue) && numValue > 0 && numValue <= 999;
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-10 px-6">
+      <div className="text-center">
+        <h1 className="text-4xl md:text-6xl font-display font-black text-white/90 leading-tight tracking-tight">
+          Set your FTP
+        </h1>
+        <p className="text-sm md:text-base text-white/25 mt-3 font-medium max-w-sm mx-auto">
+          Functional Threshold Power is used to calculate your training zones
+          and workout targets
+        </p>
+      </div>
+
+      <div className="flex flex-col items-center gap-6">
+        <div className="flex items-baseline gap-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={999}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            className="w-48 text-center text-6xl md:text-7xl font-display font-black tabular-nums bg-transparent border-b-2 border-white/10 focus:border-white/30 text-white/90 outline-none transition-colors py-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
+          <span className="text-2xl md:text-3xl font-bold text-white/20">
+            W
+          </span>
+        </div>
+
+        <button
+          onClick={() => isValid && onSave(numValue)}
+          disabled={!isValid}
+          className="px-14 py-5 md:px-16 md:py-7 rounded-2xl bg-white/[0.04] active:bg-white/[0.08] active:scale-[0.98] text-white/70 text-xl md:text-2xl font-display font-bold transition-all touch-manipulation select-none disabled:opacity-30 disabled:active:scale-100"
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Idle Screen ───────────────────────────────────────────
 
-function IdleScreen({ onLoad, onLoadFromEditor }: { onLoad: () => void; onLoadFromEditor: () => void }) {
+function IdleScreen({ onLoad, onLoadFromEditor, onChangeFtp }: { onLoad: () => void; onLoadFromEditor: () => void; onChangeFtp: () => void }) {
+  const workoutActor = useWorkoutActor();
+  const ftp = useSelector(workoutActor, selectFtp);
   const [editorWorkoutName, setEditorWorkoutName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -741,6 +822,12 @@ function IdleScreen({ onLoad, onLoadFromEditor }: { onLoad: () => void; onLoadFr
           </button>
         )}
       </div>
+      <button
+        onClick={onChangeFtp}
+        className="text-xs md:text-sm text-white/20 hover:text-white/40 transition-colors touch-manipulation"
+      >
+        FTP: {ftp}W
+      </button>
     </div>
   );
 }
@@ -894,7 +981,6 @@ function FinishedScreen({
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-3 relative z-10">
-        <UploadButton tcx={tcx} />
         <SaveButton tcx={tcx} />
         <button
           onClick={onClear}
@@ -942,11 +1028,13 @@ function WorkoutHUD({
   isCountdown,
   isRamping,
   countdownStartedAt,
+  onChangeFtp,
 }: {
   isPaused: boolean;
   isCountdown: boolean;
   isRamping: boolean;
   countdownStartedAt: number | null;
+  onChangeFtp?: () => void;
 }) {
   const workoutActor = useWorkoutActor();
   const power = useSelector(workoutActor, selectCurrentPower);
@@ -987,7 +1075,7 @@ function WorkoutHUD({
             countdownStartedAt={countdownStartedAt}
           />
         ) : (
-          <PowerHero />
+          <PowerHero onChangeFtp={onChangeFtp} />
         )}
 
         {/* Right sidebar / bottom row on mobile */}
@@ -1019,8 +1107,23 @@ export default function Workout() {
   const isRamping = useSelector(workoutActor, selectIsRamping);
   const countdownStartedAt = useSelector(workoutActor, selectCountdownStartedAt);
 
+  const ftp = useSelector(workoutActor, selectFtp);
+
   const [devicesOpen, setDevicesOpen] = useState(false);
   const [isMutedState, setIsMutedState] = useState(isMuted);
+  const [ftpSet, setFtpSet] = useState<boolean | null>(null);
+  const [showFtpSetup, setShowFtpSetup] = useState(false);
+
+  // Load FTP from localStorage on mount
+  useEffect(() => {
+    const stored = loadFtp();
+    if (stored != null) {
+      workoutActor.send({ type: "SET_FTP", ftp: stored });
+      setFtpSet(true);
+    } else {
+      setFtpSet(false);
+    }
+  }, [workoutActor]);
 
   const screen = finishedAt
     ? "finished"
@@ -1029,6 +1132,16 @@ export default function Workout() {
       : workout
         ? "ready"
         : "idle";
+
+  const onSaveFtp = useCallback(
+    (ftp: number) => {
+      saveFtp(ftp);
+      workoutActor.send({ type: "SET_FTP", ftp });
+      setFtpSet(true);
+      setShowFtpSetup(false);
+    },
+    [workoutActor]
+  );
 
   const onStart = useCallback(() => {
     workoutActor.send({ type: "START" });
@@ -1075,6 +1188,8 @@ export default function Workout() {
     workoutActor.send({ type: "SKIP_FORWARD" });
   }, [workoutActor]);
 
+  const onChangeFtp = useCallback(() => setShowFtpSetup(true), []);
+
   const controlProps = {
     isMutedState,
     onToggleMute,
@@ -1086,6 +1201,18 @@ export default function Workout() {
     onSkipForward,
   };
 
+  // Don't render until we've checked localStorage
+  if (ftpSet === null) return null;
+
+  // Show FTP setup if not set yet, or user chose to change it
+  if (!ftpSet || showFtpSetup) {
+    return (
+      <div className="h-screen w-full flex flex-col bg-black text-white overflow-hidden select-none">
+        <FtpSetup onSave={onSaveFtp} initialFtp={showFtpSetup ? ftp : undefined} />
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen w-full flex flex-col bg-black text-white overflow-hidden select-none">
       <DevicesDialog
@@ -1095,14 +1222,14 @@ export default function Workout() {
 
       {screen === "idle" && (
         <>
-          <IdleScreen onLoad={onLoad} onLoadFromEditor={onLoadFromEditor} />
+          <IdleScreen onLoad={onLoad} onLoadFromEditor={onLoadFromEditor} onChangeFtp={onChangeFtp} />
           <WorkoutControls isRunning={false} isPaused={false} hasWorkout={false} {...controlProps} />
         </>
       )}
 
       {screen === "ready" && (
         <>
-          <WorkoutHUD isPaused={false} isCountdown={false} isRamping={false} countdownStartedAt={null} />
+          <WorkoutHUD isPaused={false} isCountdown={false} isRamping={false} countdownStartedAt={null} onChangeFtp={onChangeFtp} />
           <section className="h-24 md:h-36 w-full shrink-0 overflow-hidden opacity-30 relative z-10">
             <Visualiser />
           </section>

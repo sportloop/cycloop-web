@@ -245,6 +245,7 @@ type WorkoutContext = {
   lastTickAt: number | null;
   countdownStartedAt: number | null;
   rampStartedAt: number | null;
+  zeroOutputSince: number | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -268,7 +269,8 @@ type WorkoutEvent =
   | { type: "RESET" }
   | { type: "GENERATE_TCX" }
   | { type: "TCX_READY"; tcx: string }
-  | { type: "ADD_POINT"; point: Partial<Point> };
+  | { type: "ADD_POINT"; point: Partial<Point> }
+  | { type: "SET_FTP"; ftp: number };
 
 // ---------------------------------------------------------------------------
 // Invoked actors
@@ -420,6 +422,7 @@ export const workoutMachine = setup({
     lastTickAt: null,
     countdownStartedAt: null,
     rampStartedAt: null,
+    zeroOutputSince: null,
   },
   on: {
     ADD_POINT: {
@@ -460,6 +463,11 @@ export const workoutMachine = setup({
         },
       }),
     },
+    SET_FTP: {
+      actions: assign({
+        ftp: ({ event }) => event.ftp,
+      }),
+    },
   },
   states: {
     idle: {
@@ -490,6 +498,7 @@ export const workoutMachine = setup({
             startedAt: () => Date.now(),
             lastTickAt: () => null,
             temporaryValues: () => null,
+            zeroOutputSince: () => null,
           }),
         },
       },
@@ -522,6 +531,7 @@ export const workoutMachine = setup({
             lastTickAt: () => null,
             countdownStartedAt: () => null,
             rampStartedAt: () => null,
+            zeroOutputSince: () => null,
           }),
         },
         SKIP_BACK: {
@@ -585,7 +595,59 @@ export const workoutMachine = setup({
                   },
                   countdownStartedAt: () => null,
                   rampStartedAt: () => null,
+                  zeroOutputSince: () => null,
                 }),
+              },
+              // Auto-pause: power has been 0 for 2 seconds
+              {
+                guard: ({ context, event }) => {
+                  if (!event.point || event.point.power !== 0) return false;
+                  if (context.zeroOutputSince === null) return false;
+                  return event.timestamp - context.zeroOutputSince >= 2000;
+                },
+                target: "paused",
+                actions: [
+                  assign({
+                    elapsedTime: ({ context, event }) => {
+                      const delta = context.lastTickAt === null ? 0 : event.timestamp - context.lastTickAt;
+                      return context.elapsedTime + delta;
+                    },
+                    lastTickAt: () => null,
+                    zeroOutputSince: () => null,
+                    points: ({ context, event }) => {
+                      if (!event.point) return context.points;
+                      const delta = context.lastTickAt === null ? 0 : event.timestamp - context.lastTickAt;
+                      const newElapsed = context.elapsedTime + delta;
+                      const defaults =
+                        context.points[context.points.length - 1] ?? {
+                          heartRate: 0,
+                          cadence: 0,
+                          speed: 0,
+                          power: 0,
+                        };
+                      return [
+                        ...context.points,
+                        { ...defaults, ...event.point, elapsedTime: newElapsed } as Point,
+                      ];
+                    },
+                  }),
+                  ({ context, self }) => {
+                    try {
+                      const devicesActor = self.system.get("devices") as
+                        | AnyActorRef
+                        | undefined;
+                      if (devicesActor) {
+                        devicesActor.send({
+                          type: "WRITE_COMMAND",
+                          command: "setTargetResistanceLevel",
+                          value: context.ftp * 0.2,
+                        });
+                      }
+                    } catch {
+                      // devices actor not available
+                    }
+                  },
+                ],
               },
               {
                 actions: [
@@ -595,6 +657,10 @@ export const workoutMachine = setup({
                       return context.elapsedTime + delta;
                     },
                     lastTickAt: ({ event }) => event.timestamp,
+                    zeroOutputSince: ({ context, event }) => {
+                      if (event.point === undefined || event.point.power > 0) return null;
+                      return context.zeroOutputSince ?? event.timestamp;
+                    },
                     points: ({ context, event }) => {
                       if (!event.point) return context.points;
                       const delta = context.lastTickAt === null ? 0 : event.timestamp - context.lastTickAt;
@@ -674,7 +740,7 @@ export const workoutMachine = setup({
             PAUSE: {
               target: "paused",
               actions: [
-                assign({ lastTickAt: () => null }),
+                assign({ lastTickAt: () => null, zeroOutputSince: () => null }),
                 ({ context, self }) => {
                   try {
                     const devicesActor = self.system.get("devices") as
@@ -866,6 +932,7 @@ export const workoutMachine = setup({
             lastTickAt: () => null,
             countdownStartedAt: () => null,
             rampStartedAt: () => null,
+            zeroOutputSince: () => null,
           }),
         },
         RESET: {
@@ -882,6 +949,7 @@ export const workoutMachine = setup({
             lastTickAt: () => null,
             countdownStartedAt: () => null,
             rampStartedAt: () => null,
+            zeroOutputSince: () => null,
           }),
         },
         GENERATE_TCX: "generatingTcx",
