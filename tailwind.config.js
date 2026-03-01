@@ -3,9 +3,9 @@ module.exports = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     fontFamily: {
-      sans: ["Nunito", "sans-serif"],
-      display: ["'Rubik'", "sans-serif"],
-      body: ["'Nunito'", "sans-serif"],
+      sans: ["var(--font-nunito)", "sans-serif"],
+      display: ["var(--font-rubik)", "sans-serif"],
+      body: ["var(--font-nunito)", "sans-serif"],
     },
     extend: {},
   },

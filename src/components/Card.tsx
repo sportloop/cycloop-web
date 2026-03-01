@@ -1,5 +1,5 @@
 import { cva } from "class-variance-authority";
-import { type ClassProp } from "class-variance-authority/dist/types";
+import { type ClassProp } from "class-variance-authority/types";
 import { forwardRef } from "react";
 
 //  box-shadow: 0 1rem 2rem -1rem black;

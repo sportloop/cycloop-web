@@ -1,8 +1,9 @@
+"use client";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "@xstate/react";
 import type { SnapshotFrom } from "xstate";
 
-import WorkoutLayout from "@/layouts/workout";
 import UploadButton from "@/modules/strava/UploadButton";
 import SaveButton from "@/modules/workout/SaveButton";
 import Visualiser from "@/modules/workout/Visualiser";
@@ -37,9 +38,6 @@ import {
 type WorkoutSnapshot = SnapshotFrom<WorkoutMachine>;
 
 // ─── Zone System ───────────────────────────────────────────
-// Cycling power zones based on % of FTP. Each zone shifts the
-// entire screen atmosphere — cool steel in recovery, hot amber
-// at threshold, burning orange in VO2max.
 
 type ZoneInfo = {
   name: string;
@@ -159,8 +157,6 @@ function useWorkoutActor() {
 }
 
 // ─── Metric Display ────────────────────────────────────────
-// Secondary metrics: HR, cadence, speed, next target.
-// Large enough to read at arm's length while sweating.
 
 function Metric({
   label,
@@ -201,8 +197,6 @@ function Metric({
 }
 
 // ─── Power Hero ────────────────────────────────────────────
-// The gravitational center of the HUD. Enormous zone-colored
-// number with ambient glow. Target comparison + power gauge.
 
 function PowerHero() {
   const workoutActor = useWorkoutActor();
@@ -304,8 +298,6 @@ function PowerHero() {
 }
 
 // ─── Time Strip ────────────────────────────────────────────
-// Top of screen: elapsed | next interval | remaining.
-// Always visible, compact, high-contrast tabular numbers.
 
 function TimeStrip() {
   const workoutActor = useWorkoutActor();
@@ -351,8 +343,6 @@ function TimeStrip() {
 }
 
 // ─── Controls ──────────────────────────────────────────────
-// Bottom-pinned. Massive touch targets (64-80px). No fine
-// motor skills required. active:scale for tactile feedback.
 
 function WorkoutControls({
   isRunning,
@@ -466,9 +456,6 @@ function WorkoutControls({
 }
 
 // ─── Ambient Zone Glow ─────────────────────────────────────
-// A radial gradient behind everything that shifts with zone
-// color. Cool steel in Z1, warm amber at threshold, burning
-// orange in VO2max. Visceral effort indicator.
 
 function ZoneAmbience({ zone }: { zone: ZoneInfo }) {
   return (
@@ -871,8 +858,6 @@ function FinishedScreen({
 }
 
 // ─── Text Block Display ───────────────────────────────────
-// Shows instruction text from the workout timeline. Appears
-// above the power hero when active, fades when absent.
 
 function TextBlockDisplay() {
   const workoutActor = useWorkoutActor();
@@ -895,8 +880,6 @@ function TextBlockDisplay() {
 }
 
 // ─── HUD (Running & Ready States) ─────────────────────────
-// Three-column layout on desktop, stacked on mobile. Power
-// hero dominates the center. Secondary metrics flank it.
 
 function WorkoutHUD({ isPaused }: { isPaused: boolean }) {
   const workoutActor = useWorkoutActor();
@@ -1053,5 +1036,3 @@ export default function Workout() {
     </div>
   );
 }
-
-Workout.Layout = WorkoutLayout;

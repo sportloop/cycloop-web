@@ -1,14 +1,17 @@
+"use client";
+
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { useSelector } from "@xstate/react";
+
 import { Button } from "@/components/Button";
 import { useAppActor } from "@/machines/context";
 import { selectToken } from "@/machines/strava";
-import { useSelector } from "@xstate/react";
-import { useRouter } from "next/router";
-import { useEffect } from "react";
 
-export default function StravaAuth() {
-  const {
-    query: { code },
-  } = useRouter();
+function StravaAuthInner() {
+  const searchParams = useSearchParams();
+  const code = searchParams.get("code");
 
   const appActor = useAppActor();
   const stravaActor = appActor.system.get("strava");
@@ -16,7 +19,7 @@ export default function StravaAuth() {
 
   useEffect(() => {
     if (code) {
-      stravaActor.send({ type: "LOGGED_IN", token: code as string });
+      stravaActor.send({ type: "LOGGED_IN", token: code });
     }
   }, [code, stravaActor]);
 
@@ -33,5 +36,13 @@ export default function StravaAuth() {
         <p>Strava is authenticated with Cycloop</p>
       )}
     </div>
+  );
+}
+
+export default function StravaAuth() {
+  return (
+    <Suspense>
+      <StravaAuthInner />
+    </Suspense>
   );
 }

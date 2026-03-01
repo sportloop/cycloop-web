@@ -1,25 +1,19 @@
-import fs from "fs";
-import path from "path";
-import type { GetStaticProps } from "next";
+"use client";
+
 import Link from "next/link";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 
 import Logo from "@/components/icons/Logo";
 import WorkoutPreview from "@/modules/workout/WorkoutPreview";
-import { woToWorkout } from "@/modules/workout/parser";
-import { selectStats, type WorkoutStats } from "@/machines/workoutEditor";
 import { useAppActor } from "@/machines/context";
+import type { WorkoutStats } from "@/machines/workoutEditor";
 import type { Workout } from "@/machines/types";
 
 type SerializedWorkout = {
   workout: Workout;
   stats: WorkoutStats;
   description: string;
-};
-
-type Props = {
-  workouts: SerializedWorkout[];
 };
 
 function formatDuration(ms: number): string {
@@ -103,7 +97,11 @@ function WorkoutCard({ workout, stats, description }: SerializedWorkout) {
   );
 }
 
-export default function Workouts({ workouts }: Props) {
+export default function WorkoutGallery({
+  workouts,
+}: {
+  workouts: SerializedWorkout[];
+}) {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Ambient background */}
@@ -191,32 +189,3 @@ export default function Workouts({ workouts }: Props) {
     </div>
   );
 }
-
-export const getStaticProps: GetStaticProps<Props> = async () => {
-  const workoutsDir = path.join(process.cwd(), "workouts");
-  const files = fs.readdirSync(workoutsDir).filter((f) => f.endsWith(".wo"));
-
-  const workouts: SerializedWorkout[] = files.map((file) => {
-    const content = fs.readFileSync(path.join(workoutsDir, file), "utf-8");
-    const workout = woToWorkout(content);
-    const stats = selectStats(workout);
-
-    // Extract description: first paragraph after the heading
-    const lines = content.split("\n");
-    let description = "";
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith("#") || trimmed === "" || trimmed.startsWith("-"))
-        continue;
-      description = trimmed;
-      break;
-    }
-
-    return { workout, stats, description };
-  });
-
-  // Sort by duration ascending
-  workouts.sort((a, b) => a.stats.duration - b.stats.duration);
-
-  return { props: { workouts } };
-};

@@ -1,3 +1,5 @@
+"use client";
+
 import { createContext, useContext } from "react";
 import type { ActorRefFrom } from "xstate";
 import type { appMachine } from "./index";
