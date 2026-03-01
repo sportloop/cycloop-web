@@ -1,0 +1,29 @@
+# The Rollercoaster
+
+Simulates rolling terrain with constantly changing power demands. No two hills are the same — some are punchy, others are grinding, and you never quite fully recover. Welcome to the Ardennes.
+
+- 5:00 45%
+  - :30 Warm up on the flats
+  - 3:00 The road starts rolling in 2 minutes
+  - :30 Get ready to shift — a lot
+- 10x
+  - 1:00 55%..85%
+  - 1:00 85%..55%
+  - :30 45%
+- 3:00 50%
+  - :10 Flat section — catch your breath while you can
+  - 1:30 Bigger rollers coming up, these ones bite
+- 5x
+  - 2:00 60%..100%
+  - 1:00 100%..60%
+  - 1:00 45%
+- 3:00 50%
+  - :10 One more set of rollers — the sharp ones
+  - 1:30 These are short and punchy, stay on it
+- 8x
+  - :30 50%..110%
+  - :30 110%..50%
+  - :30 45%
+- 5:00 40%
+  - :10 That's the last of the hills — coast home
+  - 3:00 Spin it out easy, the road is flat from here

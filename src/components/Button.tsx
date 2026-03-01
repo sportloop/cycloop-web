@@ -34,7 +34,7 @@ export const Button = forwardRef<
 >(({ className, variant = "primary", children, ...props }, ref) => {
   const cls = button({ variant, className });
   return (
-    <button ref={ref} className={cls} {...props} data-glow>
+    <button ref={ref} className={cls} {...props}>
       <span>{children}</span>
     </button>
   );

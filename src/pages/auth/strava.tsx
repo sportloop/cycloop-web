@@ -1,26 +1,24 @@
 import { Button } from "@/components/Button";
+import { useAppActor } from "@/machines/context";
+import { selectToken } from "@/machines/strava";
+import { useSelector } from "@xstate/react";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { useModule } from "remodules";
-
-import stravaModule from "../../modules/strava/module";
 
 export default function StravaAuth() {
   const {
     query: { code },
   } = useRouter();
-  useModule(stravaModule);
 
-  const savedToken = useSelector(stravaModule.selectors.token);
-
-  const dispatch = useDispatch();
+  const appActor = useAppActor();
+  const stravaActor = appActor.system.get("strava");
+  const savedToken = useSelector(stravaActor, selectToken);
 
   useEffect(() => {
     if (code) {
-      dispatch(stravaModule.actions.loggedIn(code as string));
+      stravaActor.send({ type: "LOGGED_IN", token: code as string });
     }
-  }, [code, dispatch]);
+  }, [code, stravaActor]);
 
   return (
     <div className="text-white">

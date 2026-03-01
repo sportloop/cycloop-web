@@ -1,34 +1,53 @@
 import { useReducer } from "react";
-import { useSelector } from "react-redux";
+import { useSelector } from "@xstate/react";
 
 import useInterval from "../../hooks/useInterval";
 import useViewport from "../../hooks/useViewport";
 
-import workoutModule from "./module";
+import { useAppActor } from "../../machines/context";
+import {
+  selectPoints,
+  selectStartedAt,
+  selectFinishedAt,
+  selectWorkoutIntervals,
+  selectFtp,
+} from "../../machines/workout";
 
-// const minimumPixelsPerMillisecond = 0.0002;
 const minimumDuration = 10 * 60 * 1000;
-const viewportHeightFraction = 0.5;
-const minimumPixelsPerWatt = 0.2;
 const minimumDisplayedPower = 200;
-const maxDisplayedPower = 2000;
 const assumedDurationFraction = 1.2;
 
+const getZoneColor = (ftpPercent: number) => {
+  if (ftpPercent < 56) return "rgba(148,163,184,0.4)";
+  if (ftpPercent < 76) return "rgba(96,165,250,0.4)";
+  if (ftpPercent < 91) return "rgba(52,211,153,0.4)";
+  if (ftpPercent < 106) return "rgba(251,191,36,0.35)";
+  if (ftpPercent < 121) return "rgba(249,115,22,0.4)";
+  if (ftpPercent < 151) return "rgba(239,68,68,0.4)";
+  return "rgba(192,132,252,0.4)";
+};
+
 export default function Visualiser() {
-  const points = useSelector(workoutModule.selectors.points);
-  const startTime = useSelector(workoutModule.selectors.startedAt);
-  const finishTime = useSelector(workoutModule.selectors.finishedAt);
-  const intervals = useSelector(workoutModule.selectors.workoutIntervals);
-  const ftp = useSelector(workoutModule.selectors.ftp);
+  const appActor = useAppActor();
+  const workoutActor = appActor.system.get("workout");
+
+  const points = useSelector(workoutActor, selectPoints);
+  const startTime = useSelector(workoutActor, selectStartedAt);
+  const finishTime = useSelector(workoutActor, selectFinishedAt);
+  const intervals = useSelector(workoutActor, selectWorkoutIntervals);
+  const ftp = useSelector(workoutActor, selectFtp);
 
   let workoutTime = 0;
   let workoutMaxPower = 0;
 
   intervals.forEach((interval) => {
     workoutTime += interval.duration;
+    const fromPower = interval.targets.power?.[0] ?? 0;
+    const toPower = interval.targets.power?.[1] ?? fromPower;
     workoutMaxPower = Math.max(
       workoutMaxPower,
-      (interval.targetPower * ftp) / 100
+      (fromPower * ftp) / 100,
+      (toPower * ftp) / 100
     );
   });
 
@@ -52,35 +71,26 @@ export default function Visualiser() {
 
   const durationModifier = viewport.width / fullDuration;
 
-  const height = viewport.height * viewportHeightFraction;
-
   const powerPoints: string[] = [];
-  const cadencePoints: string[] = [];
   const heartRatePoints: string[] = [];
-  const maxPower = points.reduce(
+  const maxRecordedPower = points.reduce(
     (max, { power }) => Math.max(max, power),
-    minimumDisplayedPower
+    0
   );
 
-  const maxPowerThatFits = Math.min(
-    height / minimumPixelsPerWatt,
-    maxDisplayedPower
+  // viewBox height must encompass all content: interval blocks,
+  // recorded power peaks, and the FTP line. Add 10% headroom.
+  const topPower = Math.ceil(
+    Math.max(workoutMaxPower, maxRecordedPower, ftp, minimumDisplayedPower) *
+      1.1,
   );
 
-  const topPower = Math.min(maxPower, maxPowerThatFits, workoutMaxPower);
+  const intervalBlocks: { points: string; fill: string }[] = [];
 
-  const intervalPoints: string[] = [
-    `${workoutTime * durationModifier},${topPower}`,
-    `0,${topPower}`,
-  ];
-
-  points.forEach(({ power, cadence, heartRate, timestamp }) => {
+  points.forEach(({ power, heartRate, timestamp }) => {
     const x = (timestamp - startTime) * durationModifier;
     if (power) {
       powerPoints.push(`${x},${topPower - power}`);
-    }
-    if (cadence) {
-      cadencePoints.push(`${x},${topPower - cadence}`);
     }
     if (heartRate) {
       heartRatePoints.push(`${x},${topPower - heartRate}`);
@@ -89,45 +99,83 @@ export default function Visualiser() {
 
   let intervalFrom = 0;
   intervals.forEach((interval) => {
-    const power = (interval.targetPower * ftp) / 100;
-    intervalPoints.push(
-      `${intervalFrom * durationModifier},${topPower - power}`,
-      `${(intervalFrom + interval.duration) * durationModifier},${
-        topPower - power
-      }`
-    );
+    const fromPercent = interval.targets.power?.[0] ?? 0;
+    const toPercent = interval.targets.power?.[1] ?? fromPercent;
+    const fromPower = (fromPercent * ftp) / 100;
+    const toPower = (toPercent * ftp) / 100;
+    const x1 = intervalFrom * durationModifier;
+    const x2 = (intervalFrom + interval.duration) * durationModifier;
+    const zone =
+      (Math.max(Math.min(fromPercent, toPercent), 60) +
+        Math.max(fromPercent, toPercent)) /
+      2;
+    intervalBlocks.push({
+      points: `${x1},${topPower} ${x1},${topPower - fromPower} ${x2},${topPower - toPower} ${x2},${topPower}`,
+      fill: getZoneColor(zone),
+    });
     intervalFrom += interval.duration;
   });
 
-  const powerD = `M${powerPoints.join("L")}`;
-
-  const cadenceD = `M${cadencePoints.join("L")}`;
-
-  const heartRateD = `M${heartRatePoints.join("L")}`;
+  const powerD = powerPoints.length ? `M${powerPoints.join("L")}` : "";
+  const heartRateD = heartRatePoints.length
+    ? `M${heartRatePoints.join("L")}`
+    : "";
 
   const lineX = (currentTime - startTime) * durationModifier;
-
   const line = `M${lineX},${topPower}L${lineX},0`;
 
-  const intervalsD = `M${intervalPoints.join("L")}`;
+  const ftpY = topPower - ftp;
+  const ftpLine = `M0,${ftpY}L${viewport.width},${ftpY}`;
 
   return (
     <svg
       viewBox={`0 0 ${viewport.width} ${topPower}`}
+      preserveAspectRatio="none"
+      width="100%"
+      height="100%"
+      style={{ display: "block" }}
       xmlns="http://www.w3.org/2000/svg"
       strokeLinejoin="round"
     >
-      <path d={powerD} stroke="#fff" strokeWidth="3" fill="none" />
-      <path d={cadenceD} stroke="#ddd" strokeWidth="2" fill="none" />
+      {/* Interval blocks */}
+      {intervalBlocks.map((block, i) => (
+        <polygon key={i} points={block.points} fill={block.fill} />
+      ))}
+      {/* FTP reference line */}
       <path
-        d={heartRateD}
-        stroke="#ddd"
-        strokeWidth="2"
-        strokeDasharray="2 1"
+        d={ftpLine}
+        stroke="rgba(248,113,113,0.25)"
+        strokeWidth="1"
+        strokeDasharray="6 4"
         fill="none"
       />
-      <path d={line} stroke="#fff" strokeWidth="2" fill="none" />
-      <path d={intervalsD} stroke="none" fill="rgba(255,255,255,0.2)" />
+      {/* Heart rate trace */}
+      {heartRateD && (
+        <path
+          d={heartRateD}
+          stroke="rgba(255,255,255,0.15)"
+          strokeWidth="1.5"
+          fill="none"
+        />
+      )}
+      {/* Power trace */}
+      {powerD && (
+        <path
+          d={powerD}
+          stroke="rgba(255,255,255,0.7)"
+          strokeWidth="2"
+          fill="none"
+        />
+      )}
+      {/* Current time indicator */}
+      {startTime != null && (
+        <path
+          d={line}
+          stroke="rgba(255,255,255,0.5)"
+          strokeWidth="1.5"
+          fill="none"
+        />
+      )}
     </svg>
   );
 }

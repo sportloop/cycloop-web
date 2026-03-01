@@ -1,0 +1,25 @@
+# Text Demo
+
+A short workout demonstrating the different ways text instructions can be timed.
+
+- 3:00 40%
+  <!-- explicit start offset + explicit duration -->
+  - :10 Welcome! Let's warm up :05
+  <!-- explicit start offset, duration estimated from text length -->
+  - :20 Settle into a comfortable cadence and keep the legs loose
+  <!-- no start offset, no explicit duration — both are automatic -->
+  - Just breathe and find your rhythm
+- 2:00 75% 90rpm
+  - :05 Here we go :03
+  - :10 Hold this effort, stay smooth :10
+  - :30 You're halfway, keep pushing
+  - 1:30 Almost done — last 30 seconds!
+- 3x
+  - :30 120%
+    - Sprint! :03
+    - Dig deep :03
+  - 1:00 50%
+    - Recover
+- 2:00 40%
+  - :10 Great work — cool down
+  - That's a wrap

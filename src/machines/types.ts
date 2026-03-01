@@ -1,3 +1,19 @@
+export type Point = {
+  timestamp: number;
+  heartRate: number;
+  cadence: number;
+  power: number;
+  speed: number;
+};
+
+export type Device = {
+  id: string;
+  name: string;
+  type: string;
+  features: { [key: string]: boolean };
+  values: { [key: string]: number };
+};
+
 export type Interval = {
   id: string;
   // enables ramps
@@ -29,4 +45,9 @@ export type WorkoutEditorState = {
   workout: Workout;
   selectedIntervals: { [id: string]: boolean };
   saving: boolean;
+};
+
+export type IntervalMeta = {
+  start: number;
+  end: number;
 };

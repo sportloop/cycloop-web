@@ -1,23 +1,27 @@
-import Button from "@/components/Button";
+import { Button } from "@/components/Button";
+import { useAppActor } from "@/machines/context";
+import {
+  selectError,
+  selectIsLoggedIn,
+  selectIsLoading,
+  selectIsUploaded,
+} from "@/machines/strava";
+import { useSelector } from "@xstate/react";
 import Link from "next/link";
 import { useCallback } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { useModule } from "remodules";
-import stravaModule from "./module";
 
 export default function UploadButton({ tcx }: { tcx: string }) {
-  useModule(stravaModule);
+  const appActor = useAppActor();
+  const stravaActor = appActor.system.get("strava");
 
-  const dispatch = useDispatch();
-
-  const isLoggedIn = useSelector(stravaModule.selectors.isLoggedIn);
-  const uploaded = useSelector(stravaModule.selectors.isUploaded);
-  const error = useSelector(stravaModule.selectors.error);
-  const loading = useSelector(stravaModule.selectors.isLoading);
+  const isLoggedIn = useSelector(stravaActor, selectIsLoggedIn);
+  const uploaded = useSelector(stravaActor, selectIsUploaded);
+  const error = useSelector(stravaActor, selectError);
+  const loading = useSelector(stravaActor, selectIsLoading);
 
   const onUpload = useCallback(() => {
-    dispatch(stravaModule.actions.upload(tcx));
-  }, [dispatch, tcx]);
+    stravaActor.send({ type: "UPLOAD", tcx });
+  }, [stravaActor, tcx]);
 
   if (!tcx) {
     return null;
