@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Rubik, Nunito } from "next/font/google";
 import Providers from "./Providers";
 import "./global.css";
@@ -17,10 +17,48 @@ const nunito = Nunito({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  themeColor: "#000000",
+};
+
 export const metadata: Metadata = {
-  title: "Cycloop",
-  icons: { icon: "favicon.svg" },
+  metadataBase: new URL("https://cycloop.app"),
+  title: {
+    default: "Cycloop — Structured Indoor Cycling",
+    template: "%s | Cycloop",
+  },
+  description:
+    "Build structured workouts, connect your smart trainer via Bluetooth, and ride with real-time power targets — all from your browser.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
   manifest: "/site.webmanifest",
+  openGraph: {
+    title: "Cycloop — Structured Indoor Cycling",
+    description:
+      "Build structured workouts, connect your smart trainer via Bluetooth, and ride with real-time power targets — all from your browser.",
+    siteName: "Cycloop",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary",
+    title: "Cycloop — Structured Indoor Cycling",
+    description:
+      "Build structured workouts, connect your smart trainer via Bluetooth, and ride with real-time power targets — all from your browser.",
+  },
+  applicationName: "Cycloop",
+  appleWebApp: {
+    capable: true,
+    title: "Cycloop",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default function RootLayout({
