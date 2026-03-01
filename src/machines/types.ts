@@ -1,5 +1,6 @@
 export type Point = {
   timestamp: number;
+  elapsedTime: number;
   heartRate: number;
   cadence: number;
   power: number;

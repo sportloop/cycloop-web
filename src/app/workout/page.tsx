@@ -32,6 +32,10 @@ import {
   selectFinishedAt,
   selectTotalTime,
   selectCurrentTextBlocks,
+  selectIsPaused,
+  selectIsCountdown,
+  selectIsRamping,
+  selectCountdownStartedAt,
   type WorkoutMachine,
 } from "@/machines/workout";
 
@@ -354,6 +358,8 @@ function WorkoutControls({
   onTogglePause,
   onToggleMute,
   onOpenDevices,
+  onSkipBack,
+  onSkipForward,
 }: {
   isRunning: boolean;
   isPaused: boolean;
@@ -364,6 +370,8 @@ function WorkoutControls({
   onTogglePause: () => void;
   onToggleMute: () => void;
   onOpenDevices: () => void;
+  onSkipBack: () => void;
+  onSkipForward: () => void;
 }) {
   const btnBase =
     "h-[4.5rem] md:h-20 rounded-2xl bg-white/[0.03] active:bg-white/[0.07] active:scale-[0.96] text-white/35 font-display font-bold transition-all touch-manipulation select-none";
@@ -373,10 +381,11 @@ function WorkoutControls({
       {hasWorkout && (
       <div className="grid grid-cols-4 gap-1.5 md:gap-2">
         <button
+          onClick={onSkipBack}
           className={`${btnBase} text-xl md:text-2xl`}
-          aria-label="Decrease power by 5 watts"
+          aria-label="Skip back 5 seconds"
         >
-          -5
+          -5s
         </button>
 
         {isRunning ? (
@@ -411,10 +420,11 @@ function WorkoutControls({
         )}
 
         <button
+          onClick={onSkipForward}
           className={`${btnBase} text-xl md:text-2xl`}
-          aria-label="Increase power by 5 watts"
+          aria-label="Skip forward 5 seconds"
         >
-          +5
+          +5s
         </button>
       </div>
       )}
@@ -468,16 +478,62 @@ function ZoneAmbience({ zone }: { zone: ZoneInfo }) {
   );
 }
 
-// ─── Pause Overlay ─────────────────────────────────────────
+// ─── Pause State Display (inline, replaces PowerHero) ──────
 
-function PauseOverlay() {
+function PauseStateDisplay({
+  isPaused,
+  isCountdown,
+  isRamping,
+  countdownStartedAt,
+}: {
+  isPaused: boolean;
+  isCountdown: boolean;
+  isRamping: boolean;
+  countdownStartedAt: number | null;
+}) {
+  const [remaining, setRemaining] = useState(3);
+
+  useEffect(() => {
+    if (!isCountdown || !countdownStartedAt) return;
+    const id = setInterval(() => {
+      const elapsed = Date.now() - countdownStartedAt;
+      setRemaining(Math.max(1, Math.ceil((3000 - elapsed) / 1000)));
+    }, 100);
+    return () => clearInterval(id);
+  }, [isCountdown, countdownStartedAt]);
+
   return (
-    <div className="absolute inset-0 z-40 bg-black/60 flex items-center justify-center">
-      <span
-        className="text-[3.5rem] md:text-[5rem] font-display font-black text-white/[0.07] uppercase tracking-[0.4em] select-none"
-      >
-        Paused
-      </span>
+    <div className="flex-1 flex flex-col items-center justify-center min-h-0 px-4">
+      {isPaused && (
+        <>
+          <div className="text-[0.55rem] md:text-[0.65rem] font-bold uppercase tracking-[0.25em] px-3 py-1 rounded-full text-white/15 bg-white/[0.03]">
+            Workout Paused
+          </div>
+          <span className="text-[5.5rem] sm:text-[7rem] md:text-[9rem] lg:text-[11rem] font-display font-black leading-[0.82] text-white/[0.06] mt-1 md:mt-2 select-none">
+            II
+          </span>
+        </>
+      )}
+      {isCountdown && (
+        <>
+          <div className="text-[0.55rem] md:text-[0.65rem] font-bold uppercase tracking-[0.25em] px-3 py-1 rounded-full text-amber-400/40 bg-amber-400/[0.05]">
+            Resuming
+          </div>
+          <span className="text-[5.5rem] sm:text-[7rem] md:text-[9rem] lg:text-[11rem] font-display font-black tabular-nums leading-[0.82] text-amber-400/30 mt-1 md:mt-2 select-none animate-pulse">
+            {remaining}
+          </span>
+        </>
+      )}
+      {isRamping && (
+        <>
+          <div className="text-[0.55rem] md:text-[0.65rem] font-bold uppercase tracking-[0.25em] px-3 py-1 rounded-full text-emerald-400/40 bg-emerald-400/[0.05]">
+            Ramping Up
+          </div>
+          <span className="text-[3rem] sm:text-[4rem] md:text-[5rem] font-display font-black uppercase tracking-[0.15em] leading-[0.82] text-emerald-400/15 mt-1 md:mt-2 select-none animate-pulse">
+            Get Ready
+          </span>
+        </>
+      )}
     </div>
   );
 }
@@ -881,16 +937,27 @@ function TextBlockDisplay() {
 
 // ─── HUD (Running & Ready States) ─────────────────────────
 
-function WorkoutHUD({ isPaused }: { isPaused: boolean }) {
+function WorkoutHUD({
+  isPaused,
+  isCountdown,
+  isRamping,
+  countdownStartedAt,
+}: {
+  isPaused: boolean;
+  isCountdown: boolean;
+  isRamping: boolean;
+  countdownStartedAt: number | null;
+}) {
   const workoutActor = useWorkoutActor();
   const power = useSelector(workoutActor, selectCurrentPower);
   const ftp = useSelector(workoutActor, selectFtp);
   const zone = getZone(power, ftp);
 
+  const showPauseState = isPaused || isCountdown || isRamping;
+
   return (
     <>
       <ZoneAmbience zone={zone} />
-      {isPaused && <PauseOverlay />}
 
       <TimeStrip />
 
@@ -911,8 +978,17 @@ function WorkoutHUD({ isPaused }: { isPaused: boolean }) {
           />
         </div>
 
-        {/* Power hero — center column */}
-        <PowerHero />
+        {/* Center column — power or pause state */}
+        {showPauseState ? (
+          <PauseStateDisplay
+            isPaused={isPaused}
+            isCountdown={isCountdown}
+            isRamping={isRamping}
+            countdownStartedAt={countdownStartedAt}
+          />
+        ) : (
+          <PowerHero />
+        )}
 
         {/* Right sidebar / bottom row on mobile */}
         <div className="flex md:flex-col items-center justify-around md:justify-center md:gap-12 md:w-44 lg:w-56 px-3 py-1.5 md:py-0 shrink-0">
@@ -938,7 +1014,11 @@ export default function Workout() {
   const finishedAt = useSelector(workoutActor, selectFinishedAt);
   const tcx = useSelector(workoutActor, selectTcx);
 
-  const [isPaused, setIsPaused] = useState(false);
+  const isPaused = useSelector(workoutActor, selectIsPaused);
+  const isCountdown = useSelector(workoutActor, selectIsCountdown);
+  const isRamping = useSelector(workoutActor, selectIsRamping);
+  const countdownStartedAt = useSelector(workoutActor, selectCountdownStartedAt);
+
   const [devicesOpen, setDevicesOpen] = useState(false);
   const [isMutedState, setIsMutedState] = useState(isMuted);
 
@@ -955,7 +1035,6 @@ export default function Workout() {
   }, [workoutActor]);
 
   const onFinish = useCallback(() => {
-    setIsPaused(false);
     workoutActor.send({ type: "FINISH" });
   }, [workoutActor]);
 
@@ -976,13 +1055,25 @@ export default function Workout() {
   }, [workoutActor]);
 
   const onTogglePause = useCallback(() => {
-    setIsPaused((p) => !p);
-  }, []);
+    if (isPaused) {
+      workoutActor.send({ type: "RESUME" });
+    } else {
+      workoutActor.send({ type: "PAUSE" });
+    }
+  }, [workoutActor, isPaused]);
 
   const onToggleMute = useCallback(() => {
     setMuted(!isMutedState);
     setIsMutedState(!isMutedState);
   }, [isMutedState]);
+
+  const onSkipBack = useCallback(() => {
+    workoutActor.send({ type: "SKIP_BACK" });
+  }, [workoutActor]);
+
+  const onSkipForward = useCallback(() => {
+    workoutActor.send({ type: "SKIP_FORWARD" });
+  }, [workoutActor]);
 
   const controlProps = {
     isMutedState,
@@ -991,6 +1082,8 @@ export default function Workout() {
     onStart,
     onFinish,
     onTogglePause,
+    onSkipBack,
+    onSkipForward,
   };
 
   return (
@@ -1009,7 +1102,7 @@ export default function Workout() {
 
       {screen === "ready" && (
         <>
-          <WorkoutHUD isPaused={false} />
+          <WorkoutHUD isPaused={false} isCountdown={false} isRamping={false} countdownStartedAt={null} />
           <section className="h-24 md:h-36 w-full shrink-0 overflow-hidden opacity-30 relative z-10">
             <Visualiser />
           </section>
@@ -1019,7 +1112,7 @@ export default function Workout() {
 
       {screen === "running" && (
         <>
-          <WorkoutHUD isPaused={isPaused} />
+          <WorkoutHUD isPaused={isPaused} isCountdown={isCountdown} isRamping={isRamping} countdownStartedAt={countdownStartedAt} />
           <section className="h-24 md:h-36 w-full shrink-0 overflow-hidden relative z-10">
             <Visualiser />
           </section>

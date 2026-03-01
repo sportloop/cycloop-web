@@ -11,6 +11,7 @@ import {
   selectFinishedAt,
   selectWorkoutIntervals,
   selectFtp,
+  selectElapsedTime,
 } from "../../machines/workout";
 
 const minimumDuration = 10 * 60 * 1000;
@@ -36,6 +37,7 @@ export default function Visualiser() {
   const finishTime = useSelector(workoutActor, selectFinishedAt);
   const intervals = useSelector(workoutActor, selectWorkoutIntervals);
   const ftp = useSelector(workoutActor, selectFtp);
+  const elapsedTime = useSelector(workoutActor, selectElapsedTime);
 
   let workoutTime = 0;
   let workoutMaxPower = 0;
@@ -51,7 +53,6 @@ export default function Visualiser() {
     );
   });
 
-  const currentTime = finishTime ?? Date.now();
   let fullDuration = minimumDuration;
   if (workoutTime) {
     fullDuration = workoutTime;
@@ -71,8 +72,6 @@ export default function Visualiser() {
 
   const durationModifier = viewport.width / fullDuration;
 
-  const powerPoints: string[] = [];
-  const heartRatePoints: string[] = [];
   const maxRecordedPower = points.reduce(
     (max, { power }) => Math.max(max, power),
     0
@@ -87,13 +86,25 @@ export default function Visualiser() {
 
   const intervalBlocks: { points: string; fill: string }[] = [];
 
-  points.forEach(({ power, heartRate, timestamp }) => {
-    const x = (timestamp - startTime) * durationModifier;
+  // Build segmented paths — start a new segment when elapsedTime goes
+  // backwards (skip-back) so we don't get backward-drawing artifacts.
+  const powerSegments: string[][] = [[]];
+  const heartRateSegments: string[][] = [[]];
+  let prevElapsed = -1;
+
+  points.forEach(({ power, heartRate, elapsedTime: pointElapsed }) => {
+    if (pointElapsed < prevElapsed) {
+      // rewind detected — start new segments
+      powerSegments.push([]);
+      heartRateSegments.push([]);
+    }
+    prevElapsed = pointElapsed;
+    const x = pointElapsed * durationModifier;
     if (power) {
-      powerPoints.push(`${x},${topPower - power}`);
+      powerSegments[powerSegments.length - 1].push(`${x},${topPower - power}`);
     }
     if (heartRate) {
-      heartRatePoints.push(`${x},${topPower - heartRate}`);
+      heartRateSegments[heartRateSegments.length - 1].push(`${x},${topPower - heartRate}`);
     }
   });
 
@@ -116,12 +127,14 @@ export default function Visualiser() {
     intervalFrom += interval.duration;
   });
 
-  const powerD = powerPoints.length ? `M${powerPoints.join("L")}` : "";
-  const heartRateD = heartRatePoints.length
-    ? `M${heartRatePoints.join("L")}`
-    : "";
+  const powerDs = powerSegments
+    .filter((seg) => seg.length > 0)
+    .map((seg) => `M${seg.join("L")}`);
+  const heartRateDs = heartRateSegments
+    .filter((seg) => seg.length > 0)
+    .map((seg) => `M${seg.join("L")}`);
 
-  const lineX = (currentTime - startTime) * durationModifier;
+  const lineX = elapsedTime * durationModifier;
   const line = `M${lineX},${topPower}L${lineX},0`;
 
   const ftpY = topPower - ftp;
@@ -150,23 +163,25 @@ export default function Visualiser() {
         fill="none"
       />
       {/* Heart rate trace */}
-      {heartRateD && (
+      {heartRateDs.map((d, i) => (
         <path
-          d={heartRateD}
+          key={`hr-${i}`}
+          d={d}
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"
           fill="none"
         />
-      )}
+      ))}
       {/* Power trace */}
-      {powerD && (
+      {powerDs.map((d, i) => (
         <path
-          d={powerD}
+          key={`pw-${i}`}
+          d={d}
           stroke="rgba(255,255,255,0.7)"
           strokeWidth="2"
           fill="none"
         />
-      )}
+      ))}
       {/* Current time indicator */}
       {startTime != null && (
         <path

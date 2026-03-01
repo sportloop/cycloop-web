@@ -242,6 +242,9 @@ type WorkoutContext = {
   intervalMetaById: Record<string, IntervalMeta>;
   ftp: number;
   elapsedTime: number;
+  lastTickAt: number | null;
+  countdownStartedAt: number | null;
+  rampStartedAt: number | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -256,7 +259,11 @@ type WorkoutEvent =
   | { type: "LOAD_FAILED" }
   | { type: "START" }
   | { type: "TICK"; timestamp: number; point?: Point }
+  | { type: "PAUSE" }
+  | { type: "RESUME" }
   | { type: "FINISH" }
+  | { type: "SKIP_FORWARD" }
+  | { type: "SKIP_BACK" }
   | { type: "CLEAR" }
   | { type: "RESET" }
   | { type: "GENERATE_TCX" }
@@ -410,6 +417,9 @@ export const workoutMachine = setup({
     intervalMetaById: {},
     ftp: 270,
     elapsedTime: 0,
+    lastTickAt: null,
+    countdownStartedAt: null,
+    rampStartedAt: null,
   },
   on: {
     ADD_POINT: {
@@ -427,6 +437,7 @@ export const workoutMachine = setup({
             ...context.temporaryValues,
             ...event.point,
             timestamp: Date.now(),
+            elapsedTime: context.elapsedTime,
           } as Point;
         },
         points: ({ context, event }) => {
@@ -443,6 +454,7 @@ export const workoutMachine = setup({
               ...defaults,
               ...event.point,
               timestamp: Date.now(),
+              elapsedTime: context.elapsedTime,
             } as Point,
           ];
         },
@@ -476,6 +488,7 @@ export const workoutMachine = setup({
           guard: "workoutLoaded",
           actions: assign({
             startedAt: () => Date.now(),
+            lastTickAt: () => null,
             temporaryValues: () => null,
           }),
         },
@@ -500,68 +513,192 @@ export const workoutMachine = setup({
         src: "ticker",
         input: ({ self }) => ({ system: self.system }),
       },
+      initial: "active",
       on: {
-        TICK: [
-          {
-            guard: ({ context, event }) => {
-              if (!context.workout || !context.startedAt) return false;
-              const lastId =
-                context.workout.intervalIds[
-                  context.workout.intervalIds.length - 1
-                ];
-              if (!lastId) return false;
+        FINISH: {
+          target: "finished",
+          actions: assign({
+            finishedAt: () => Date.now(),
+            lastTickAt: () => null,
+            countdownStartedAt: () => null,
+            rampStartedAt: () => null,
+          }),
+        },
+        SKIP_BACK: {
+          actions: assign({
+            elapsedTime: ({ context }) => Math.max(0, context.elapsedTime - 5000),
+            lastTickAt: () => null,
+          }),
+        },
+        SKIP_FORWARD: {
+          actions: assign({
+            elapsedTime: ({ context }) => {
+              if (!context.workout) return context.elapsedTime;
+              const lastId = context.workout.intervalIds[context.workout.intervalIds.length - 1];
+              if (!lastId) return context.elapsedTime;
               const workoutEnd = context.intervalMetaById[lastId].end;
-              const elapsed = event.timestamp - context.startedAt;
-              return elapsed >= workoutEnd;
+              return Math.min(workoutEnd, context.elapsedTime + 5000);
             },
-            target: "finished",
-            actions: assign({
-              elapsedTime: ({ context, event }) =>
-                event.timestamp - (context.startedAt ?? 0),
-              finishedAt: ({ event }) => event.timestamp,
-              points: ({ context, event }) => {
-                if (!event.point) return context.points;
-                const defaults =
-                  context.points[context.points.length - 1] ?? {
-                    heartRate: 0,
-                    cadence: 0,
-                    speed: 0,
-                    power: 0,
-                  };
-                return [
-                  ...context.points,
-                  { ...defaults, ...event.point } as Point,
-                ];
-              },
-            }),
-          },
-          {
-            actions: [
-              // Update elapsed time
-              assign({
-                elapsedTime: ({ context, event }) =>
-                  event.timestamp - (context.startedAt ?? 0),
-                points: ({ context, event }) => {
-                  if (!event.point) return context.points;
-                  const defaults =
-                    context.points[context.points.length - 1] ?? {
-                      heartRate: 0,
-                      cadence: 0,
-                      speed: 0,
-                      power: 0,
-                    };
-                  return [
-                    ...context.points,
-                    { ...defaults, ...event.point } as Point,
-                  ];
+            lastTickAt: () => null,
+          }),
+        },
+      },
+      states: {
+        active: {
+          on: {
+            TICK: [
+              {
+                guard: ({ context, event }) => {
+                  if (!context.workout || !context.startedAt) return false;
+                  const lastId =
+                    context.workout.intervalIds[
+                      context.workout.intervalIds.length - 1
+                    ];
+                  if (!lastId) return false;
+                  const workoutEnd = context.intervalMetaById[lastId].end;
+                  const delta = context.lastTickAt === null ? 0 : event.timestamp - context.lastTickAt;
+                  return context.elapsedTime + delta >= workoutEnd;
                 },
-              }),
-              // Check if resistance needs updating
-              ({ context, self }) => {
-                const targetPower = selectTargetPower(context);
-                if (targetPower === null) return;
-
-                // Send resistance update to devices actor
+                target: "#workout.finished",
+                actions: assign({
+                  elapsedTime: ({ context, event }) => {
+                    const delta = context.lastTickAt === null ? 0 : event.timestamp - context.lastTickAt;
+                    return context.elapsedTime + delta;
+                  },
+                  lastTickAt: ({ event }) => event.timestamp,
+                  finishedAt: ({ event }) => event.timestamp,
+                  points: ({ context, event }) => {
+                    if (!event.point) return context.points;
+                    const delta = context.lastTickAt === null ? 0 : event.timestamp - context.lastTickAt;
+                    const newElapsed = context.elapsedTime + delta;
+                    const defaults =
+                      context.points[context.points.length - 1] ?? {
+                        heartRate: 0,
+                        cadence: 0,
+                        speed: 0,
+                        power: 0,
+                      };
+                    return [
+                      ...context.points,
+                      { ...defaults, ...event.point, elapsedTime: newElapsed } as Point,
+                    ];
+                  },
+                  countdownStartedAt: () => null,
+                  rampStartedAt: () => null,
+                }),
+              },
+              {
+                actions: [
+                  assign({
+                    elapsedTime: ({ context, event }) => {
+                      const delta = context.lastTickAt === null ? 0 : event.timestamp - context.lastTickAt;
+                      return context.elapsedTime + delta;
+                    },
+                    lastTickAt: ({ event }) => event.timestamp,
+                    points: ({ context, event }) => {
+                      if (!event.point) return context.points;
+                      const delta = context.lastTickAt === null ? 0 : event.timestamp - context.lastTickAt;
+                      const newElapsed = context.elapsedTime + delta;
+                      const defaults =
+                        context.points[context.points.length - 1] ?? {
+                          heartRate: 0,
+                          cadence: 0,
+                          speed: 0,
+                          power: 0,
+                        };
+                      return [
+                        ...context.points,
+                        { ...defaults, ...event.point, elapsedTime: newElapsed } as Point,
+                      ];
+                    },
+                  }),
+                  ({ context, self }) => {
+                    const targetPower = selectTargetPower(context);
+                    if (targetPower === null) return;
+                    try {
+                      const devicesActor = self.system.get("devices") as
+                        | AnyActorRef
+                        | undefined;
+                      if (devicesActor) {
+                        devicesActor.send({
+                          type: "WRITE_COMMAND",
+                          command: "setTargetResistanceLevel",
+                          value: targetPower,
+                        });
+                      }
+                    } catch {
+                      // devices actor not available
+                    }
+                  },
+                  ({ context }) => {
+                    const avgPower = (iv: Interval) =>
+                      (iv.targets.power![0] + iv.targets.power![1]) / 2;
+                    const timeUntilNext =
+                      selectTimeUntilNextInterval(context);
+                    if (timeUntilNext !== null && timeUntilNext <= 3000) {
+                      const current = selectCurrentInterval(context);
+                      const next = selectNextInterval(context);
+                      if (current && next) {
+                        const delta = Math.abs(
+                          avgPower(next) - avgPower(current),
+                        );
+                        if (delta > 2) playCountdown();
+                      }
+                      return;
+                    }
+                    const timeSinceStart =
+                      selectTimeSinceIntervalStart(context);
+                    if (timeSinceStart !== null && timeSinceStart <= 500) {
+                      const current = selectCurrentInterval(context);
+                      if (!current || !context.workout) return;
+                      const idx = context.workout.intervalIds.indexOf(
+                        current.id,
+                      );
+                      if (idx <= 0) return;
+                      const prev =
+                        context.workout.intervalsById[
+                          context.workout.intervalIds[idx - 1]
+                        ];
+                      const curAvg = avgPower(current);
+                      const prevAvg = avgPower(prev);
+                      if (curAvg > prevAvg + 2) {
+                        playIntensityUp();
+                      } else if (curAvg < prevAvg - 2) {
+                        playIntensityDown();
+                      }
+                    }
+                  },
+                ],
+              },
+            ],
+            PAUSE: {
+              target: "paused",
+              actions: [
+                assign({ lastTickAt: () => null }),
+                ({ context, self }) => {
+                  try {
+                    const devicesActor = self.system.get("devices") as
+                      | AnyActorRef
+                      | undefined;
+                    if (devicesActor) {
+                      devicesActor.send({
+                        type: "WRITE_COMMAND",
+                        command: "setTargetResistanceLevel",
+                        value: context.ftp * 0.2,
+                      });
+                    }
+                  } catch {
+                    // devices actor not available
+                  }
+                },
+              ],
+            },
+          },
+        },
+        paused: {
+          on: {
+            TICK: {
+              actions: ({ context, self }) => {
                 try {
                   const devicesActor = self.system.get("devices") as
                     | AnyActorRef
@@ -570,59 +707,143 @@ export const workoutMachine = setup({
                     devicesActor.send({
                       type: "WRITE_COMMAND",
                       command: "setTargetResistanceLevel",
-                      value: targetPower,
+                      value: context.ftp * 0.2,
                     });
                   }
                 } catch {
                   // devices actor not available
                 }
               },
-              // Sound cues
-              ({ context }) => {
-                const avgPower = (iv: Interval) =>
-                  (iv.targets.power![0] + iv.targets.power![1]) / 2;
-
-                // Countdown: only if next interval has different intensity
-                const timeUntilNext = selectTimeUntilNextInterval(context);
-                if (timeUntilNext !== null && timeUntilNext <= 3000) {
-                  const current = selectCurrentInterval(context);
-                  const next = selectNextInterval(context);
-                  if (current && next) {
-                    const delta = Math.abs(avgPower(next) - avgPower(current));
-                    if (delta > 2) playCountdown();
+            },
+            RESUME: {
+              target: "countdown",
+              actions: assign({
+                countdownStartedAt: () => Date.now(),
+              }),
+            },
+          },
+        },
+        countdown: {
+          entry: () => playCountdown(),
+          on: {
+            TICK: {
+              actions: ({ context, self }) => {
+                try {
+                  const devicesActor = self.system.get("devices") as
+                    | AnyActorRef
+                    | undefined;
+                  if (devicesActor) {
+                    devicesActor.send({
+                      type: "WRITE_COMMAND",
+                      command: "setTargetResistanceLevel",
+                      value: context.ftp * 0.2,
+                    });
                   }
-                  return;
-                }
-
-                // Transition sound at interval start
-                const timeSinceStart = selectTimeSinceIntervalStart(context);
-                if (timeSinceStart !== null && timeSinceStart <= 500) {
-                  const current = selectCurrentInterval(context);
-                  if (!current || !context.workout) return;
-                  const idx = context.workout.intervalIds.indexOf(current.id);
-                  if (idx <= 0) return;
-                  const prev =
-                    context.workout.intervalsById[
-                      context.workout.intervalIds[idx - 1]
-                    ];
-                  const curAvg = avgPower(current);
-                  const prevAvg = avgPower(prev);
-                  if (curAvg > prevAvg + 2) {
-                    playIntensityUp();
-                  } else if (curAvg < prevAvg - 2) {
-                    playIntensityDown();
-                  }
-                  // Same intensity → silence
+                } catch {
+                  // devices actor not available
                 }
               },
-            ],
+            },
+            PAUSE: {
+              target: "paused",
+              actions: [
+                assign({
+                  countdownStartedAt: () => null,
+                }),
+                ({ context, self }) => {
+                  try {
+                    const devicesActor = self.system.get("devices") as
+                      | AnyActorRef
+                      | undefined;
+                    if (devicesActor) {
+                      devicesActor.send({
+                        type: "WRITE_COMMAND",
+                        command: "setTargetResistanceLevel",
+                        value: context.ftp * 0.2,
+                      });
+                    }
+                  } catch {
+                    // devices actor not available
+                  }
+                },
+              ],
+            },
           },
-        ],
-        FINISH: {
-          target: "finished",
-          actions: assign({
-            finishedAt: () => Date.now(),
-          }),
+          after: {
+            3000: {
+              target: "ramping",
+              actions: assign({
+                rampStartedAt: () => Date.now(),
+              }),
+            },
+          },
+        },
+        ramping: {
+          on: {
+            TICK: {
+              actions: ({ context, self }) => {
+                const targetPower = selectTargetPower(context);
+                if (targetPower === null) return;
+                const progress = Math.min(
+                  1,
+                  (Date.now() - (context.rampStartedAt ?? 0)) / 3000,
+                );
+                const pauseResistance = context.ftp * 0.2;
+                const resistance =
+                  pauseResistance +
+                  (targetPower - pauseResistance) * progress;
+                try {
+                  const devicesActor = self.system.get("devices") as
+                    | AnyActorRef
+                    | undefined;
+                  if (devicesActor) {
+                    devicesActor.send({
+                      type: "WRITE_COMMAND",
+                      command: "setTargetResistanceLevel",
+                      value: resistance,
+                    });
+                  }
+                } catch {
+                  // devices actor not available
+                }
+              },
+            },
+            PAUSE: {
+              target: "paused",
+              actions: [
+                assign({
+                  countdownStartedAt: () => null,
+                  rampStartedAt: () => null,
+                }),
+                ({ context, self }) => {
+                  try {
+                    const devicesActor = self.system.get("devices") as
+                      | AnyActorRef
+                      | undefined;
+                    if (devicesActor) {
+                      devicesActor.send({
+                        type: "WRITE_COMMAND",
+                        command: "setTargetResistanceLevel",
+                        value: context.ftp * 0.2,
+                      });
+                    }
+                  } catch {
+                    // devices actor not available
+                  }
+                },
+              ],
+            },
+          },
+          after: {
+            3000: {
+              target: "active",
+              actions: assign({
+                lastTickAt: () => null,
+                countdownStartedAt: () => null,
+                rampStartedAt: () => null,
+              }),
+            },
+          },
         },
       },
     },
@@ -642,6 +863,9 @@ export const workoutMachine = setup({
             finishedAt: () => null,
             tcx: () => null,
             elapsedTime: () => 0,
+            lastTickAt: () => null,
+            countdownStartedAt: () => null,
+            rampStartedAt: () => null,
           }),
         },
         RESET: {
@@ -655,6 +879,9 @@ export const workoutMachine = setup({
             workout: () => null,
             intervalMetaById: () => ({}),
             elapsedTime: () => 0,
+            lastTickAt: () => null,
+            countdownStartedAt: () => null,
+            rampStartedAt: () => null,
           }),
         },
         GENERATE_TCX: "generatingTcx",
@@ -904,6 +1131,30 @@ export function selectCurrentTextBlocks(
       context.elapsedTime >= block.startAt &&
       context.elapsedTime < block.startAt + block.duration
   );
+}
+
+export function selectIsPaused(
+  snapshot: SnapshotFrom<typeof workoutMachine>,
+): boolean {
+  return snapshot.matches({ running: "paused" });
+}
+
+export function selectIsCountdown(
+  snapshot: SnapshotFrom<typeof workoutMachine>,
+): boolean {
+  return snapshot.matches({ running: "countdown" });
+}
+
+export function selectIsRamping(
+  snapshot: SnapshotFrom<typeof workoutMachine>,
+): boolean {
+  return snapshot.matches({ running: "ramping" });
+}
+
+export function selectCountdownStartedAt(
+  snapshot: SnapshotFrom<typeof workoutMachine>,
+): number | null {
+  return snapshot.context.countdownStartedAt;
 }
 
 export type WorkoutMachine = typeof workoutMachine;
