@@ -21,7 +21,7 @@ import {
   stickToSteps,
   selectStats,
 } from "@/machines/workoutEditor";
-import { type Interval } from "../types";
+import { type Interval } from "@/machines/types";
 
 const maxFtpPercentageShown = 300;
 

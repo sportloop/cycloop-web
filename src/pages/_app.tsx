@@ -1,6 +1,6 @@
 /* eslint-disable react/jsx-props-no-spreading */
 import * as React from "react";
-import { DefaultSeo } from "next-seo";
+import Head from "next/head";
 import { createActor } from "xstate";
 
 import "tailwindcss/tailwind.css";
@@ -20,16 +20,14 @@ function App({ Component, pageProps }) {
     <AppActorContext.Provider value={actor}>
       <ViewportProvider>
         <main className="min-h-screen bg-black selection:text-black selection:bg-white">
-          <DefaultSeo
-            title="Cycloop App"
-            description="do what it takes"
-            canonical="https://cycloop.app"
-            openGraph={{
-              url: "https://cycloop.app",
-              title: "Cycloop - do what it takes",
-              description: "online cycling activity tracking",
-            }}
-          />
+          <Head>
+            <title>Cycloop App</title>
+            <meta name="description" content="do what it takes" />
+            <link rel="canonical" href="https://cycloop.app" />
+            <meta property="og:url" content="https://cycloop.app" />
+            <meta property="og:title" content="Cycloop - do what it takes" />
+            <meta property="og:description" content="online cycling activity tracking" />
+          </Head>
           <Layout {...layoutProps}>
             <Component {...pageProps} />
           </Layout>

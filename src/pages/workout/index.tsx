@@ -909,7 +909,7 @@ function WorkoutHUD({ isPaused }: { isPaused: boolean }) {
       <ZoneAmbience zone={zone} />
       {isPaused && <PauseOverlay />}
 
-      <TimeStrip toolbar={toolbar} />
+      <TimeStrip />
 
       <div className="flex-1 flex flex-col md:flex-row min-h-0 relative z-10">
         <TextBlockDisplay />

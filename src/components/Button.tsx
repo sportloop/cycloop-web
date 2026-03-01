@@ -23,6 +23,9 @@ const button = cva(
       variant: {
         primary: "",
         secondary: "",
+        danger: "text-red-400",
+        success: "text-green-400",
+        warning: "text-amber-400",
       },
     },
   },
